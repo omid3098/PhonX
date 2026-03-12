@@ -7,16 +7,16 @@
     android:background="@color/bg_dark">
 
     <!-- Settings gear button top-right -->
-    <ImageButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSettings"
+        style="@style/Widget.Material3.Button.IconButton"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="تنظیمات"
-        android:src="@android:drawable/ic_menu_manage"
-        android:tint="@color/text_primary"
+        android:contentDescription="@string/content_desc_settings"
+        app:icon="@drawable/ic_settings"
+        app:iconTint="@color/text_primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -26,10 +26,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/app_name"
-        android:textColor="@color/text_primary"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.15"
+        android:textAppearance="@style/TextAppearance.PhonX.Title"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -44,9 +41,7 @@
         android:layout_height="200dp"
         android:background="@drawable/btn_connect_disconnected"
         android:text="@string/connect"
-        android:textColor="@color/text_primary"
-        android:textSize="22sp"
-        android:textStyle="bold"
+        android:textAppearance="@style/TextAppearance.PhonX.ConnectButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
@@ -60,8 +55,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/status_disconnected"
+        android:textAppearance="@style/TextAppearance.PhonX.Status"
         android:textColor="@color/btn_disconnected"
-        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnConnect"

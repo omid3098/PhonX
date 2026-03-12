@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/settings_bg"
@@ -15,23 +16,22 @@
         android:gravity="center_vertical"
         android:layout_marginBottom="24dp">
 
-        <ImageButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBack"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_media_previous"
-            android:tint="@color/text_primary"
-            android:contentDescription="بازگشت" />
+            android:contentDescription="@string/content_desc_back"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconTint="@color/text_primary" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/settings_title"
-            android:textColor="@color/text_primary"
+            android:textAppearance="@style/TextAppearance.PhonX.Title"
             android:textSize="22sp"
-            android:textStyle="bold"
             android:gravity="center" />
 
         <!-- Spacer to balance back button -->
@@ -41,55 +41,75 @@
 
     </LinearLayout>
 
-    <!-- Current server label -->
-    <TextView
+    <!-- Current server card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/current_server"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="24dp"
+        app:cardBackgroundColor="@color/input_bg"
+        app:cardCornerRadius="12dp"
+        app:strokeWidth="0dp"
+        app:cardElevation="0dp"
+        app:contentPadding="16dp">
 
-    <!-- Current server value -->
-    <TextView
-        android:id="@+id/tvCurrentServer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/no_server"
-        android:textColor="@color/text_primary"
-        android:textSize="14sp"
-        android:maxLines="2"
-        android:ellipsize="middle"
-        android:background="@color/input_bg"
-        android:padding="12dp"
-        android:layout_marginBottom="24dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/current_server"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvCurrentServer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/no_server"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:maxLines="2"
+                android:ellipsize="middle" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Server URI input -->
-    <EditText
-        android:id="@+id/etServerUri"
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/input_bg"
-        android:padding="12dp"
+        android:layout_marginBottom="24dp"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:hint="@string/settings_hint"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary"
-        android:textSize="14sp"
-        android:inputType="textMultiLine|textNoSuggestions"
-        android:gravity="top"
-        android:textIsSelectable="true"
-        android:minLines="5"
-        android:layout_marginBottom="24dp" />
+        app:boxStrokeColor="@color/md_primary"
+        app:hintTextColor="@color/text_secondary">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etServerUri"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:textSize="14sp"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:gravity="top"
+            android:textIsSelectable="true"
+            android:minLines="5" />
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Save button -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:text="@string/save_back"
-        android:textSize="18sp"
-        android:textColor="@color/text_primary"
-        android:background="@color/btn_connected" />
+        android:textSize="18sp" />
 
 </LinearLayout>

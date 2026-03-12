@@ -3,13 +3,13 @@
     <item android:state_pressed="true">
         <shape android:shape="oval">
             <solid android:color="#004D1A" />
-            <stroke android:width="4dp" android:color="@color/btn_connected" />
+            <stroke android:width="3dp" android:color="@color/btn_connected" />
         </shape>
     </item>
     <item>
         <shape android:shape="oval">
             <solid android:color="#1A1A2E" />
-            <stroke android:width="4dp" android:color="@color/btn_disconnected" />
+            <stroke android:width="3dp" android:color="@color/btn_disconnected" />
         </shape>
     </item>
 </selector>

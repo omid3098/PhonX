@@ -3,7 +3,7 @@ package ir.phonx;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,7 +26,7 @@ public class SettingsActivity extends AppCompatActivity {
         etServerUri = findViewById(R.id.etServerUri);
         tvCurrentServer = findViewById(R.id.tvCurrentServer);
         Button btnSave = findViewById(R.id.btnSave);
-        ImageButton btnBack = findViewById(R.id.btnBack);
+        View btnBack = findViewById(R.id.btnBack);
 
         loadCurrentConfig();
 
@@ -47,7 +47,7 @@ public class SettingsActivity extends AppCompatActivity {
         String input = etServerUri.getText().toString().trim();
 
         if (input.isEmpty()) {
-            Toast.makeText(this, "لطفاً آدرس سرور را وارد کنید", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.empty_uri_toast), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -61,7 +61,7 @@ public class SettingsActivity extends AppCompatActivity {
             finish();
         } catch (Exception e) {
             Toast.makeText(this,
-                    "آدرس نامعتبر: " + e.getMessage(),
+                    getString(R.string.invalid_uri_toast, e.getMessage()),
                     Toast.LENGTH_LONG).show();
         }
     }

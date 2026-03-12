@@ -7,13 +7,14 @@ import android.content.IntentFilter;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.ImageButton;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
                     setState(State.DISCONNECTED);
                     String msg = intent.getStringExtra("message");
                     if (msg != null) {
-                        Toast.makeText(MainActivity.this, "خطا: " + msg, Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.error_prefix, msg), Toast.LENGTH_LONG).show();
                     }
                     break;
             }
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnConnect = findViewById(R.id.btnConnect);
         tvStatus = findViewById(R.id.tvStatus);
-        ImageButton btnSettings = findViewById(R.id.btnSettings);
+        View btnSettings = findViewById(R.id.btnSettings);
 
         btnConnect.setOnClickListener(v -> onConnectClicked());
         btnSettings.setOnClickListener(v ->
@@ -126,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
     private void startVpnService() {
         Intent intent = new Intent(this, PhonXVpnService.class);
         intent.setAction(PhonXVpnService.ACTION_START);
-        startService(intent);
+        ContextCompat.startForegroundService(this, intent);
     }
 
     private void stopVpnService() {

@@ -1,6 +1,7 @@
 package ir.phonx;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 
 import libv2ray.CoreCallbackHandler;
@@ -34,6 +35,11 @@ public class XrayController {
     public void start(ConfigParser.ProxyConfig config, int tunFd) throws Exception {
         stop();
 
+        String primaryAbi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "";
+        if (!primaryAbi.startsWith("arm")) {
+            throw new Exception("Xray native library requires ARM device (detected: " + primaryAbi + ")");
+        }
+
         String assetsPath = context.getFilesDir().getAbsolutePath();
         Libv2ray.initCoreEnv(assetsPath, "");
 
@@ -49,8 +55,8 @@ public class XrayController {
         if (coreController == null) return;
         try {
             coreController.stopLoop();
-        } catch (Exception e) {
-            Log.w(TAG, "stopLoop: " + e.getMessage());
+        } catch (Throwable t) {
+            Log.w(TAG, "stopLoop: " + t.getMessage());
         }
         coreController = null;
         Log.i(TAG, "Xray stopped");

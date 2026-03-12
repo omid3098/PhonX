@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.VpnService;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
@@ -54,7 +55,12 @@ public class PhonXVpnService extends VpnService {
     // ── VPN lifecycle ────────────────────────────────────────────────────────
 
     private void startVpn() {
-        startForeground(NOTIF_ID, buildNotification(getString(R.string.status_connecting)));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIF_ID, buildNotification(getString(R.string.status_connecting)),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(NOTIF_ID, buildNotification(getString(R.string.status_connecting)));
+        }
         broadcastStatus(MainActivity.STATUS_CONNECTING);
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
@@ -94,9 +100,9 @@ public class PhonXVpnService extends VpnService {
                 broadcastStatus(MainActivity.STATUS_CONNECTED);
                 Log.i(TAG, "VPN started successfully");
 
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to start VPN", e);
-                broadcastError(e.getMessage());
+            } catch (Throwable t) {
+                Log.e(TAG, "Failed to start VPN", t);
+                broadcastError(t.getMessage());
                 stopVpn();
             }
         }, "PhonX-VpnStart").start();

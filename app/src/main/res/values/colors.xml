@@ -8,4 +8,16 @@
     <color name="text_secondary">#AAAAAA</color>
     <color name="settings_bg">#16213E</color>
     <color name="input_bg">#0F3460</color>
+
+    <!-- Material 3 semantic colors -->
+    <color name="md_primary">#00C851</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#004D1A</color>
+    <color name="md_on_primary_container">#80E8A0</color>
+    <color name="md_surface">#1A1A2E</color>
+    <color name="md_on_surface">#FFFFFF</color>
+    <color name="md_surface_variant">#16213E</color>
+    <color name="md_on_surface_variant">#AAAAAA</color>
+    <color name="md_outline">#444444</color>
+    <color name="md_outline_variant">#333333</color>
 </resources>

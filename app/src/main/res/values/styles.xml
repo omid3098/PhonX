@@ -1,20 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@color/bg_dark</item>
         <item name="android:statusBarColor">@color/bg_dark</item>
         <item name="android:navigationBarColor">@color/bg_dark</item>
-        <item name="colorPrimary">@color/btn_connected</item>
-        <item name="colorPrimaryDark">@color/bg_dark</item>
-        <item name="colorAccent">@color/btn_connected</item>
+        <item name="colorPrimary">@color/md_primary</item>
+        <item name="colorOnPrimary">@color/md_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md_on_primary_container</item>
+        <item name="colorSurface">@color/md_surface</item>
+        <item name="colorOnSurface">@color/md_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md_on_surface_variant</item>
+        <item name="colorOutline">@color/md_outline</item>
+        <item name="android:fontFamily">@font/inter</item>
     </style>
 
-    <style name="SettingsTheme" parent="Theme.AppCompat.NoActionBar">
+    <style name="SettingsTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@color/settings_bg</item>
         <item name="android:statusBarColor">@color/settings_bg</item>
         <item name="android:navigationBarColor">@color/settings_bg</item>
-        <item name="colorPrimary">@color/btn_connected</item>
-        <item name="colorPrimaryDark">@color/settings_bg</item>
-        <item name="colorAccent">@color/btn_connected</item>
+        <item name="colorPrimary">@color/md_primary</item>
+        <item name="colorOnPrimary">@color/md_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md_on_primary_container</item>
+        <item name="colorSurface">@color/md_surface_variant</item>
+        <item name="colorOnSurface">@color/md_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md_on_surface_variant</item>
+        <item name="colorOutline">@color/md_outline</item>
+        <item name="android:fontFamily">@font/inter</item>
+    </style>
+
+    <!-- Text appearance styles -->
+    <style name="TextAppearance.PhonX.Title" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.15</item>
+    </style>
+
+    <style name="TextAppearance.PhonX.ConnectButton" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.PhonX.Status" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">18sp</item>
+        <item name="android:fontFamily">@font/inter</item>
     </style>
 </resources>

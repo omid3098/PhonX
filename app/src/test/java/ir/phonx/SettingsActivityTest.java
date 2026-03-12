@@ -61,7 +61,7 @@ public class SettingsActivityTest {
             EditText et = activity.findViewById(R.id.etServerUri);
             et.setText("   ");
             activity.findViewById(R.id.btnSave).performClick();
-            assertEquals("لطفاً آدرس سرور را وارد کنید",
+            assertEquals("Please enter a server address",
                     ShadowToast.getTextOfLatestToast());
             // Nothing saved
             assertFalse(new ConfigStorage(activity).hasConfig());
@@ -74,7 +74,7 @@ public class SettingsActivityTest {
             EditText et = activity.findViewById(R.id.etServerUri);
             et.setText("");
             activity.findViewById(R.id.btnSave).performClick();
-            assertEquals("لطفاً آدرس سرور را وارد کنید",
+            assertEquals("Please enter a server address",
                     ShadowToast.getTextOfLatestToast());
         });
     }
@@ -110,8 +110,8 @@ public class SettingsActivityTest {
             activity.findViewById(R.id.btnSave).performClick();
             String toast = ShadowToast.getTextOfLatestToast();
             assertNotNull(toast);
-            assertTrue("Toast should start with 'آدرس نامعتبر:'",
-                    toast.startsWith("آدرس نامعتبر:"));
+            assertTrue("Toast should start with 'Invalid address:'",
+                    toast.startsWith("Invalid address:"));
             assertFalse(new ConfigStorage(activity).hasConfig());
         });
     }

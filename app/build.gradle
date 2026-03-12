@@ -1,0 +1,161 @@
+plugins {
+    id 'com.android.application'
+    id 'jacoco'
+}
+
+android {
+    namespace 'ir.phonx'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "ir.phonx"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            // enableUnitTestCoverage NOT set — using offline Jacoco instrumentation below
+        }
+    }
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a"
+            universalApk false
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+            all {
+                systemProperty 'robolectric.enabledSdks', '34'
+            }
+        }
+    }
+}
+
+// ── Jacoco offline instrumentation configuration ──────────────────────────────
+// Robolectric's AsmInstrumentingClassLoader bypasses the JVM ClassFileTransformer
+// chain, so the standard Jacoco Java agent cannot intercept classes it loads.
+// Solution: pre-instrument class files on disk (offline mode). Robolectric reads
+// these pre-instrumented bytes, applies its own ASM transforms on top, and the
+// Jacoco probes survive — allowing real coverage measurement.
+
+configurations {
+    jacocoAnt
+}
+
+ext.jacocoVersion = jacoco.toolVersion   // re-use the version set by the plugin
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.robolectric:robolectric:4.14'
+    testImplementation 'androidx.test:core:1.5.0'
+    testImplementation 'androidx.test:runner:1.5.2'
+    testImplementation 'androidx.test:rules:1.5.0'
+    testImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    // Jacoco runtime needed for offline-instrumented classes
+    testImplementation "org.jacoco:org.jacoco.agent:${jacocoVersion}:runtime"
+
+    // Jacoco Ant tasks for offline instrumentation
+    jacocoAnt "org.jacoco:org.jacoco.ant:${jacocoVersion}"
+}
+
+def offlineClassesDir = "${buildDir}/jacoco-offline/debug"
+def jacocoExecDest    = "${buildDir}/jacoco/testDebugUnitTest.exec"
+
+// Task: offline-instrument the debug class files using Jacoco's Ant task
+tasks.register('jacocoInstrumentDebug') {
+    dependsOn 'compileDebugJavaWithJavac'
+    def sourceDir = "${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+    inputs.dir(file(sourceDir))
+    outputs.dir(file(offlineClassesDir))
+
+    doLast {
+        ant.taskdef(
+            name: 'jacocoInstrument',
+            classname: 'org.jacoco.ant.InstrumentTask',
+            classpath: configurations.jacocoAnt.asPath
+        )
+        ant.jacocoInstrument(destdir: offlineClassesDir) {
+            fileset(dir: sourceDir)
+        }
+    }
+}
+
+afterEvaluate {
+    // Configure the unit test task for offline Jacoco coverage
+    def testTask = tasks.findByName('testDebugUnitTest')
+    if (testTask != null) {
+        testTask.dependsOn 'jacocoInstrumentDebug'
+
+        // Disable the online Jacoco agent (conflicts with offline-instrumented classes)
+        testTask.jacoco.enabled = false
+
+        // Prepend offline-instrumented classes so Robolectric loads them instead of originals
+        testTask.classpath = files(offlineClassesDir) + testTask.classpath
+
+        // Tell the Jacoco runtime where to write the exec file
+        testTask.systemProperty 'jacoco-agent.destfile', jacocoExecDest
+    }
+
+    // Strip large geo-routing databases (~30 MB) from libv2ray.aar assets
+    tasks.matching { it.name =~ /^merge.*Assets$/ }.configureEach {
+        doLast {
+            def assetDir = outputs.files.singleFile
+            ['geoip.dat', 'geosite.dat', 'geoip-only-cn-private.dat'].each { name ->
+                def f = new File(assetDir, name)
+                if (f.exists()) { f.delete(); println "Stripped asset: $name" }
+            }
+        }
+    }
+}
+
+// ── Jacoco coverage report ────────────────────────────────────────────────────
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+                      '**/*Test*.*', 'android/**/*.*', '**/databinding/**']
+    def debugTree = fileTree(
+        dir: "${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
+        excludes: fileFilter
+    )
+    sourceDirectories.setFrom(files(["${project.projectDir}/src/main/java"]))
+    classDirectories.setFrom(files([debugTree]))
+    executionData.setFrom(files([jacocoExecDest]))
+}

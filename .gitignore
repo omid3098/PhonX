@@ -1,0 +1,22 @@
+# Android build outputs
+build/
+app/build/
+
+# Gradle caches and wrapper downloads (keep wrapper scripts)
+.gradle/
+**/gradle-wrapper.jar
+
+# Local config — machine-specific, never commit
+local.properties
+*.iml
+
+# IDE
+.idea/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code session state (task IDs, in-progress work)
+.claude/

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#1A1A2E</color>
+    <color name="btn_connected">#00C851</color>
+    <color name="btn_connecting">#FFBB33</color>
+    <color name="btn_disconnected">#666666</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#AAAAAA</color>
+    <color name="settings_bg">#16213E</color>
+    <color name="input_bg">#0F3460</color>
+</resources>

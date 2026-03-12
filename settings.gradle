@@ -1,0 +1,2 @@
+rootProject.name = "PhonX"
+include ':app'

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/settings_bg"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Back button row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_media_previous"
+            android:tint="@color/text_primary"
+            android:contentDescription="بازگشت" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/settings_title"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <!-- Spacer to balance back button -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp" />
+
+    </LinearLayout>
+
+    <!-- Current server label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/current_server"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Current server value -->
+    <TextView
+        android:id="@+id/tvCurrentServer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/no_server"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:maxLines="2"
+        android:ellipsize="middle"
+        android:background="@color/input_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Server URI input -->
+    <EditText
+        android:id="@+id/etServerUri"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/input_bg"
+        android:padding="12dp"
+        android:hint="@string/settings_hint"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_secondary"
+        android:textSize="14sp"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:gravity="top"
+        android:textIsSelectable="true"
+        android:minLines="5"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Save button -->
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="@string/save_back"
+        android:textSize="18sp"
+        android:textColor="@color/text_primary"
+        android:background="@color/btn_connected" />
+
+</LinearLayout>

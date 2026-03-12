@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple lock/shield shape representing VPN -->
+    <path
+        android:fillColor="#00C851"
+        android:pathData="M54,20 C42,20 32,30 32,42 L32,48 C28,48 24,52 24,56 L24,80 C24,84 28,88 32,88 L76,88 C80,88 84,84 84,80 L84,56 C84,52 80,48 76,48 L76,42 C76,30 66,20 54,20 Z M54,28 C61.7,28 68,34.3 68,42 L68,48 L40,48 L40,42 C40,34.3 46.3,28 54,28 Z M54,60 C57.3,60 60,62.7 60,66 C60,68.5 58.5,70.7 56,71.7 L56,76 L52,76 L52,71.7 C49.5,70.7 48,68.5 48,66 C48,62.7 50.7,60 54,60 Z" />
+</vector>

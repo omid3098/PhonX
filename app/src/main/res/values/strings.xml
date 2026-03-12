@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PhonX</string>
+    <string name="connect">اتصال</string>
+    <string name="disconnect">قطع اتصال</string>
+    <string name="status_disconnected">غیر متصل</string>
+    <string name="status_connecting">در حال اتصال…</string>
+    <string name="status_connected">متصل</string>
+    <string name="status_error">خطا</string>
+    <string name="settings_title">تنظیمات سرور</string>
+    <string name="settings_hint">آدرس سرور را وارد کنید\nvless://UUID@host:port?…\nیا vmess://BASE64</string>
+    <string name="save_back">ذخیره و بازگشت</string>
+    <string name="current_server">سرور فعلی:</string>
+    <string name="no_server">سرور تنظیم نشده</string>
+    <string name="no_config_toast">لطفاً ابتدا آدرس سرور را تنظیم کنید</string>
+    <string name="config_saved_toast">تنظیمات ذخیره شد</string>
+    <string name="vpn_notification_title">PhonX - در حال اتصال</string>
+    <string name="vpn_connected_title">PhonX - متصل</string>
+    <string name="vpn_channel_name">PhonX VPN</string>
+    <string name="vpn_channel_desc">وضعیت اتصال PhonX</string>
+</resources>

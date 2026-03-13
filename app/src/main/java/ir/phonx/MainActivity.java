@@ -21,10 +21,6 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity implements VpnStatusManager.Listener {
-
-    public static final String ACTION_VPN_STATUS = "ir.phonx.VPN_STATUS";
-    public static final String EXTRA_STATUS = "STATUS";
-
     public static final String STATUS_DISCONNECTED = "disconnected";
     public static final String STATUS_CONNECTING = "connecting";
     public static final String STATUS_CONNECTING_PSIPHON = "connecting_psiphon";
@@ -32,9 +28,6 @@ public class MainActivity extends AppCompatActivity implements VpnStatusManager.
     public static final String STATUS_VERIFYING = "verifying";
     public static final String STATUS_ERROR = "error";
     public static final String STATUS_TRYING_NEXT = "trying_next";
-    public static final String EXTRA_IP = "ip_address";
-    public static final String EXTRA_COUNTRY = "ip_country";
-
     public enum State { DISCONNECTED, CONNECTING, CONNECTED }
 
     public interface VpnStateListener {
@@ -80,8 +73,8 @@ public class MainActivity extends AppCompatActivity implements VpnStatusManager.
         bottomNav = findViewById(R.id.bottomNav);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_layout), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, 0, systemBars.right, 0);
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 

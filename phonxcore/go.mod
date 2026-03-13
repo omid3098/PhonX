@@ -8,6 +8,7 @@ replace gitlab.com/yawning/obfs4.git => github.com/jmwample/obfs4 v0.0.0-2023072
 require (
 	github.com/2dust/AndroidLibXrayLite v0.0.0-20260309075705-c0a0231614a5
 	github.com/Psiphon-Labs/psiphon-tunnel-core v1.0.11-0.20260312182922-882d21673eba
+	golang.org/x/mobile v0.0.0-20260204172633-1dceadbbeea3
 )
 
 require (
@@ -65,6 +66,7 @@ require (
 	github.com/mdlayher/socket v0.5.0 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mroth/weightedrand v1.0.0 // indirect
+	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
@@ -112,7 +114,6 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
-	golang.org/x/mobile v0.0.0-20260204172633-1dceadbbeea3 // indirect
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect

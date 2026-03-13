@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class PsiphonController {
 
     private static final String TAG = "PsiphonController";
-    private static final long CONNECT_TIMEOUT_SECONDS = 60;
+    private static final long CONNECT_TIMEOUT_SECONDS = 300;
 
     private final Context context;
     private phonxcore.PsiphonController goController;
@@ -98,7 +98,7 @@ public class PsiphonController {
             throw new Exception("Psiphon tunnel connect timeout (" + CONNECT_TIMEOUT_SECONDS + "s)");
         }
 
-        socksPort = goController.getSOCKSPort();
+        socksPort = (int) goController.getSOCKSPort();
         Log.i(TAG, "Psiphon connected, SOCKS port=" + socksPort);
         return socksPort;
     }

@@ -44,6 +44,19 @@ func (p *PsiphonController) Start(configJson string, dataDir string) error {
 		return err
 	}
 
+	// Inject DataRootDirectory into the config JSON so Psiphon writes
+	// its datastore to the app's writable storage.
+	var cfg map[string]interface{}
+	if err := json.Unmarshal([]byte(configJson), &cfg); err != nil {
+		return err
+	}
+	cfg["DataRootDirectory"] = dataDir
+	updatedConfig, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	configJson = string(updatedConfig)
+
 	provider := &psiProvider{handler: p.handler, controller: p}
 
 	p.mu.Lock()
@@ -51,7 +64,7 @@ func (p *PsiphonController) Start(configJson string, dataDir string) error {
 	p.mu.Unlock()
 
 	// psi.Start() launches the tunnel in a goroutine and returns immediately.
-	err := psi.Start(
+	err = psi.Start(
 		configJson,
 		"",       // embeddedServerEntryList (empty — use config's server list)
 		"",       // embeddedServerEntryListFilename
@@ -178,7 +191,7 @@ func (pp *psiProvider) HasNetworkConnectivity() int { return 1 }
 func (pp *psiProvider) GetNetworkID() string        { return "WIFI" }
 func (pp *psiProvider) IPv6Synthesize(addr string) string { return addr }
 func (pp *psiProvider) HasIPv6Route() int           { return 0 }
-func (pp *psiProvider) GetDNSServersAsString() string { return "" }
+func (pp *psiProvider) GetDNSServersAsString() string { return "8.8.8.8,8.8.4.4,1.1.1.1" }
 
 // BindToDevice protects a socket fd from being routed through the TUN interface.
 // The Java side should call VpnService.protect(fd) in the implementation.

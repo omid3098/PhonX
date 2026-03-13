@@ -47,15 +47,16 @@ jobs:
           go install golang.org/x/mobile/cmd/gobind@latest
           gomobile init
 
-      - name: Download Go modules
+      - name: Vendor Go modules
         working-directory: phonxcore
-        run: go mod download
+        run: go mod vendor
 
       - name: Build AAR
         working-directory: phonxcore
         run: |
           gomobile bind \
             -v \
+            -mod=vendor \
             -tags "PSIPHON_DISABLE_INPROXY" \
             -target=android/arm,android/arm64 \
             -androidapi 24 \

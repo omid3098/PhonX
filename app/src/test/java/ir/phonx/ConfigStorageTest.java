@@ -70,4 +70,28 @@ public class ConfigStorageTest {
         storage.clear();
         assertFalse(storage.hasConfig());
     }
+
+    // ── Psiphon toggle tests ─────────────────────────────────────────────────
+
+    @Test
+    public void isPsiphonEnabled_defaultTrue() {
+        assertTrue(storage.isPsiphonEnabled());
+    }
+
+    @Test
+    public void setPsiphonEnabled_roundtrip() {
+        storage.setPsiphonEnabled(false);
+        assertFalse(storage.isPsiphonEnabled());
+        storage.setPsiphonEnabled(true);
+        assertTrue(storage.isPsiphonEnabled());
+    }
+
+    @Test
+    public void setPsiphonEnabled_false_persistsCorrectly() {
+        storage.setPsiphonEnabled(false);
+        // Re-create storage to verify persistence
+        Context ctx = ApplicationProvider.getApplicationContext();
+        ConfigStorage newStorage = new ConfigStorage(ctx);
+        assertFalse(newStorage.isPsiphonEnabled());
+    }
 }

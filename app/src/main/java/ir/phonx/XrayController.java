@@ -4,35 +4,41 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
-import libv2ray.CoreCallbackHandler;
-import libv2ray.CoreController;
-import libv2ray.Libv2ray;
+import phonxcore.CoreCallbackHandler;
+import phonxcore.Phonxcore;
 
 /**
- * Controls the Xray/v2ray core via AndroidLibXrayLite.
+ * Controls the Xray/v2ray core via phonxcore (combined Go module).
  *
- * Real API (from libv2ray.aar v26.3.9):
- *   Libv2ray.initCoreEnv(String assetsPath, String key)
- *   Libv2ray.newCoreController(CoreCallbackHandler) → CoreController
- *   CoreController.startLoop(String configJson, int tunFd) throws Exception
- *   CoreController.stopLoop() throws Exception
+ * Real API (from phonxcore):
+ *   Phonxcore.initXrayEnv(String assetsPath, String key)
+ *   Phonxcore.newXrayController(CoreCallbackHandler) → phonxcore.XrayController
+ *   controller.startLoop(String configJson, int tunFd) throws Exception
+ *   controller.stopLoop() throws Exception
  *
  * Architecture: Xray takes the TUN file descriptor directly.
- * Traffic flow: TUN fd → Xray (tun inbound) → vless/vmess outbound → VPS → Internet
- * DPI bypass: achieved via TLS+WebSocket or Reality transport on the vless/vmess outbound.
+ * Traffic flow (no Psiphon): TUN fd → Xray (tun inbound) → vless/vmess outbound → VPS → Internet
+ * Traffic flow (with Psiphon): TUN fd → Xray (tun inbound) → [dialerProxy: psiphon-out] → Psiphon SOCKS → VPS → Internet
  */
 public class XrayController {
 
     private static final String TAG = "XrayController";
 
     private final Context context;
-    private CoreController coreController;
+    // Use fully qualified name to avoid collision with this class's name
+    private phonxcore.XrayController coreController;
 
     public XrayController(Context context) {
         this.context = context.getApplicationContext();
     }
 
+    /** Start Xray without Psiphon chain (direct connection). */
     public void start(ConfigParser.ProxyConfig config, int tunFd) throws Exception {
+        start(config, tunFd, 0);
+    }
+
+    /** Start Xray, optionally routing through Psiphon SOCKS proxy. */
+    public void start(ConfigParser.ProxyConfig config, int tunFd, int psiphonSocksPort) throws Exception {
         stop();
 
         String primaryAbi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "";
@@ -41,14 +47,14 @@ public class XrayController {
         }
 
         String assetsPath = context.getFilesDir().getAbsolutePath();
-        Libv2ray.initCoreEnv(assetsPath, "");
+        Phonxcore.initXrayEnv(assetsPath, "");
 
-        coreController = Libv2ray.newCoreController(new XrayCoreCallback());
+        coreController = Phonxcore.newXrayController(new XrayCoreCallback());
 
-        String configJson = buildConfig(config);
-        Log.d(TAG, "Starting Xray, tunFd=" + tunFd);
+        String configJson = buildConfig(config, psiphonSocksPort);
+        Log.d(TAG, "Starting Xray, tunFd=" + tunFd + ", psiphonSocksPort=" + psiphonSocksPort);
         coreController.startLoop(configJson, tunFd);
-        Log.i(TAG, "Xray started: " + Libv2ray.checkVersionX());
+        Log.i(TAG, "Xray started: " + Phonxcore.checkVersionX());
     }
 
     public void stop() {
@@ -68,10 +74,25 @@ public class XrayController {
 
     // ── Config builders ──────────────────────────────────────────────────────
 
-    private String buildConfig(ConfigParser.ProxyConfig config) {
+    private String buildConfig(ConfigParser.ProxyConfig config, int psiphonSocksPort) {
         String outbound = "vless".equals(config.protocol)
-                ? buildVlessOutbound(config)
-                : buildVmessOutbound(config);
+                ? buildVlessOutbound(config, psiphonSocksPort)
+                : buildVmessOutbound(config, psiphonSocksPort);
+
+        StringBuilder outbounds = new StringBuilder();
+        outbounds.append(outbound);
+
+        // When Psiphon is active, add a SOCKS outbound for the Psiphon local proxy
+        if (psiphonSocksPort > 0) {
+            outbounds.append(",\n")
+                .append("    {\n")
+                .append("      \"tag\": \"psiphon-out\",\n")
+                .append("      \"protocol\": \"socks\",\n")
+                .append("      \"settings\": {\n")
+                .append("        \"servers\": [{\"address\": \"127.0.0.1\", \"port\": ").append(psiphonSocksPort).append("}]\n")
+                .append("      }\n")
+                .append("    }");
+        }
 
         return "{\n"
             + "  \"log\": {\"loglevel\": \"warning\"},\n"
@@ -86,7 +107,7 @@ public class XrayController {
             + "    }\n"
             + "  ],\n"
             + "  \"outbounds\": [\n"
-            + outbound + ",\n"
+            + outbounds + ",\n"
             + "    {\"protocol\": \"freedom\", \"tag\": \"direct\"}\n"
             + "  ],\n"
             + "  \"routing\": {\n"
@@ -98,7 +119,7 @@ public class XrayController {
             + "}";
     }
 
-    private String buildVlessOutbound(ConfigParser.ProxyConfig c) {
+    private String buildVlessOutbound(ConfigParser.ProxyConfig c, int psiphonSocksPort) {
         return "    {\n"
             + "      \"tag\": \"proxy\",\n"
             + "      \"protocol\": \"vless\",\n"
@@ -112,11 +133,11 @@ public class XrayController {
             + "          }]\n"
             + "        }]\n"
             + "      },\n"
-            + "      \"streamSettings\": " + buildStreamSettings(c) + "\n"
+            + "      \"streamSettings\": " + buildStreamSettings(c, psiphonSocksPort) + "\n"
             + "    }";
     }
 
-    private String buildVmessOutbound(ConfigParser.ProxyConfig c) {
+    private String buildVmessOutbound(ConfigParser.ProxyConfig c, int psiphonSocksPort) {
         return "    {\n"
             + "      \"tag\": \"proxy\",\n"
             + "      \"protocol\": \"vmess\",\n"
@@ -131,11 +152,11 @@ public class XrayController {
             + "          }]\n"
             + "        }]\n"
             + "      },\n"
-            + "      \"streamSettings\": " + buildStreamSettings(c) + "\n"
+            + "      \"streamSettings\": " + buildStreamSettings(c, psiphonSocksPort) + "\n"
             + "    }";
     }
 
-    private String buildStreamSettings(ConfigParser.ProxyConfig c) {
+    private String buildStreamSettings(ConfigParser.ProxyConfig c, int psiphonSocksPort) {
         String network  = c.network  != null ? c.network  : "tcp";
         String security = c.security != null ? c.security : "none";
         String sni      = c.sni      != null ? c.sni      : c.host;
@@ -165,6 +186,13 @@ public class XrayController {
         } else if ("reality".equals(security)) {
             sb.append(",\n        \"realitySettings\": {\n")
               .append("          \"serverName\": \"").append(sni).append("\"\n")
+              .append("        }");
+        }
+
+        // When Psiphon is active, route this outbound through the Psiphon SOCKS proxy
+        if (psiphonSocksPort > 0) {
+            sb.append(",\n        \"sockopt\": {\n")
+              .append("          \"dialerProxy\": \"psiphon-out\"\n")
               .append("        }");
         }
 

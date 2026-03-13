@@ -5,6 +5,8 @@ import android.widget.TextView;
 
 import androidx.test.core.app.ActivityScenario;
 
+import com.google.android.material.materialswitch.MaterialSwitch;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -121,6 +123,29 @@ public class SettingsActivityTest {
         scenario.onActivity(activity -> {
             activity.findViewById(R.id.btnBack).performClick();
             assertTrue(activity.isFinishing());
+        });
+    }
+
+    // ── Psiphon toggle tests ─────────────────────────────────────────────────
+
+    @Test
+    public void psiphonSwitch_defaultChecked() {
+        scenario.onActivity(activity -> {
+            MaterialSwitch sw = activity.findViewById(R.id.switchPsiphon);
+            assertTrue("Psiphon switch should default to checked", sw.isChecked());
+        });
+    }
+
+    @Test
+    public void psiphonSwitch_toggle_persistsToStorage() {
+        scenario.onActivity(activity -> {
+            MaterialSwitch sw = activity.findViewById(R.id.switchPsiphon);
+            // Toggle off
+            sw.setChecked(false);
+            assertFalse(new ConfigStorage(activity).isPsiphonEnabled());
+            // Toggle back on
+            sw.setChecked(true);
+            assertTrue(new ConfigStorage(activity).isPsiphonEnabled());
         });
     }
 }

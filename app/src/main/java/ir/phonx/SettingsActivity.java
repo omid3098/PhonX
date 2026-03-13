@@ -9,10 +9,13 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.materialswitch.MaterialSwitch;
+
 public class SettingsActivity extends AppCompatActivity {
 
     private EditText etServerUri;
     private TextView tvCurrentServer;
+    private MaterialSwitch switchPsiphon;
     private ConfigStorage configStorage;
 
     @Override
@@ -25,10 +28,16 @@ public class SettingsActivity extends AppCompatActivity {
 
         etServerUri = findViewById(R.id.etServerUri);
         tvCurrentServer = findViewById(R.id.tvCurrentServer);
+        switchPsiphon = findViewById(R.id.switchPsiphon);
         Button btnSave = findViewById(R.id.btnSave);
         View btnBack = findViewById(R.id.btnBack);
 
         loadCurrentConfig();
+
+        // Psiphon toggle
+        switchPsiphon.setChecked(configStorage.isPsiphonEnabled());
+        switchPsiphon.setOnCheckedChangeListener((buttonView, isChecked) ->
+                configStorage.setPsiphonEnabled(isChecked));
 
         btnSave.setOnClickListener(v -> saveConfig());
         btnBack.setOnClickListener(v -> finish());

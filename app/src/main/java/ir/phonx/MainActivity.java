@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String STATUS_DISCONNECTED = "disconnected";
     public static final String STATUS_CONNECTING = "connecting";
+    public static final String STATUS_CONNECTING_PSIPHON = "connecting_psiphon";
     public static final String STATUS_CONNECTED = "connected";
     public static final String STATUS_ERROR = "error";
 
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
                     setState(State.CONNECTED);
                     break;
                 case STATUS_CONNECTING:
+                case STATUS_CONNECTING_PSIPHON:
                     setState(State.CONNECTING);
                     break;
                 case STATUS_DISCONNECTED:

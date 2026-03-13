@@ -77,7 +77,17 @@ public class PhonXVpnService extends VpnService {
 
                 ConfigParser.ProxyConfig config = ConfigParser.parse(uri);
 
-                // Build TUN interface — exclude our own app to prevent routing loop
+                int psiphonSocksPort = 0;
+
+                // Step 1: If Psiphon is enabled, start Psiphon tunnel first
+                if (storage.isPsiphonEnabled()) {
+                    broadcastStatus(MainActivity.STATUS_CONNECTING_PSIPHON);
+                    updateNotification(getString(R.string.status_connecting_psiphon));
+                    psiphonSocksPort = psiphonController.start(this);
+                    Log.i(TAG, "Psiphon ready, SOCKS port=" + psiphonSocksPort);
+                }
+
+                // Step 2: Build TUN interface — exclude our own app to prevent routing loop
                 ParcelFileDescriptor tunPfd = new Builder()
                     .addAddress("10.0.0.2", 24)
                     .addRoute("0.0.0.0", 0)
@@ -93,12 +103,13 @@ public class PhonXVpnService extends VpnService {
                 // Detach fd — transfer ownership to Xray core
                 rawTunFd = tunPfd.detachFd();
 
-                // Start Xray with the real TUN fd
-                xrayController.start(config, rawTunFd);
+                // Step 3: Start Xray with the TUN fd, optionally chaining through Psiphon
+                xrayController.start(config, rawTunFd, psiphonSocksPort);
 
                 updateNotification(getString(R.string.status_connected));
                 broadcastStatus(MainActivity.STATUS_CONNECTED);
-                Log.i(TAG, "VPN started successfully");
+                Log.i(TAG, "VPN started successfully"
+                        + (psiphonSocksPort > 0 ? " (via Psiphon)" : " (direct)"));
 
             } catch (Throwable t) {
                 Log.e(TAG, "Failed to start VPN", t);
@@ -111,8 +122,9 @@ public class PhonXVpnService extends VpnService {
     private void stopVpn() {
         Log.i(TAG, "Stopping VPN");
 
-        psiphonController.stop();
+        // Stop in reverse order: Xray first, then Psiphon
         xrayController.stop();
+        psiphonController.stop();
 
         // Close the raw TUN fd (Xray may have already closed it — swallow any error)
         if (rawTunFd != -1) {

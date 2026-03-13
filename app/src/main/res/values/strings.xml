@@ -23,4 +23,7 @@
     <string name="error_prefix">Error: %1$s</string>
     <string name="content_desc_settings">Settings</string>
     <string name="content_desc_back">Back</string>
+    <string name="psiphon_toggle_title">Route through Psiphon</string>
+    <string name="psiphon_toggle_desc">Uses Psiphon tunnel for additional DPI bypass</string>
+    <string name="status_connecting_psiphon">Connecting via Psiphon…</string>
 </resources>

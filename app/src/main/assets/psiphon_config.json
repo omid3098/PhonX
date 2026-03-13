@@ -1,0 +1,12 @@
+{
+    "PropagationChannelId": "FFFFFFFFFFFFFFFF",
+    "SponsorId": "FFFFFFFFFFFFFFFF",
+    "UseIndistinguishableTLS": true,
+    "DisableLocalHTTPProxy": true,
+    "LocalSocksProxyPort": 0,
+    "TunnelWholeDevice": 0,
+    "EgressRegion": "",
+    "DeviceRegion": "",
+    "EmitDiagnosticNotices": false,
+    "EmitBytesTransferred": false
+}

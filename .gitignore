@@ -18,5 +18,11 @@ local.properties
 .DS_Store
 Thumbs.db
 
+# Go vendor dependencies (5k+ files, reproducible via `go mod vendor`)
+phonxcore/vendor/
+
+# Built AAR (binary, built from phonxcore/ Go module)
+app/libs/phonxcore.aar
+
 # Claude Code session state (task IDs, in-progress work)
 .claude/

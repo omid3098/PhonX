@@ -131,7 +131,7 @@ afterEvaluate {
         testTask.systemProperty 'jacoco-agent.destfile', jacocoExecDest
     }
 
-    // Strip large geo-routing databases (~30 MB) from libv2ray.aar assets
+    // Strip large geo-routing databases (~30 MB) from phonxcore.aar assets
     tasks.matching { it.name =~ /^merge.*Assets$/ }.configureEach {
         doLast {
             def assetDir = outputs.files.singleFile

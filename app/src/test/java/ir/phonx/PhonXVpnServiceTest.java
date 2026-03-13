@@ -409,4 +409,16 @@ public class PhonXVpnServiceTest {
         assertEquals("Psiphon should only be started once across retries",
                 1, ShadowGoPsiphonController.startCallCount);
     }
+
+    // ── IP checker factory tests ──────────────────────────────────────────────
+
+    @Test
+    public void createIpChecker_returnsNonNull() {
+        assertNotNull(service.createIpChecker());
+    }
+
+    @Test
+    public void createIpChecker_returnsIpCheckerInstance() {
+        assertTrue(service.createIpChecker() instanceof IpChecker);
+    }
 }

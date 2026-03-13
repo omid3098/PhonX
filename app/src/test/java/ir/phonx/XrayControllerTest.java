@@ -242,6 +242,43 @@ public class XrayControllerTest {
         assertFalse("streamSettings should not have sockopt when no Psiphon", stream.has("sockopt"));
     }
 
+    // ── SOCKS inbound tests ────────────────────────────────────────────────
+
+    @Test
+    public void start_configContainsSocksInbound() throws Exception {
+        xrayController.start(vlessWsTls(), 1);
+        JSONObject root = new JSONObject(ShadowGoXrayController.lastConfigJson);
+        JSONArray inbounds = root.getJSONArray("inbounds");
+
+        boolean found = false;
+        for (int i = 0; i < inbounds.length(); i++) {
+            JSONObject inbound = inbounds.getJSONObject(i);
+            if ("socks-in".equals(inbound.optString("tag"))) {
+                assertEquals("socks", inbound.getString("protocol"));
+                assertEquals(XrayController.LOCAL_SOCKS_PORT, inbound.getInt("port"));
+                found = true;
+                break;
+            }
+        }
+        assertTrue("Config should contain socks-in inbound", found);
+    }
+
+    @Test
+    public void start_socksInboundListensOnLocalhost() throws Exception {
+        xrayController.start(vlessWsTls(), 1);
+        JSONObject root = new JSONObject(ShadowGoXrayController.lastConfigJson);
+        JSONArray inbounds = root.getJSONArray("inbounds");
+
+        for (int i = 0; i < inbounds.length(); i++) {
+            JSONObject inbound = inbounds.getJSONObject(i);
+            if ("socks-in".equals(inbound.optString("tag"))) {
+                assertEquals("127.0.0.1", inbound.getString("listen"));
+                return;
+            }
+        }
+        fail("socks-in inbound not found");
+    }
+
     // ── stop() tests ─────────────────────────────────────────────────────────
 
     @Test

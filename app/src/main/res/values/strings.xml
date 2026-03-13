@@ -26,6 +26,10 @@
     <string name="psiphon_toggle_title">Route through Psiphon</string>
     <string name="psiphon_toggle_desc">Uses Psiphon tunnel for additional DPI bypass</string>
     <string name="status_connecting_psiphon">Connecting via Psiphon…</string>
+    <string name="status_verifying">Verifying connection…</string>
+    <string name="status_connected_with_ip">Connected — %1$s</string>
+    <string name="ip_label">Your IP: %1$s</string>
+    <string name="ip_label_with_country">Your IP: %1$s (%2$s)</string>
     <string name="try_all_title">Try all connections</string>
     <string name="try_all_desc">If active config fails, try remaining configs one by one</string>
     <string name="config_added_toast">Config added</string>

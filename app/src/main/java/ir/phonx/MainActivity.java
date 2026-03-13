@@ -29,8 +29,11 @@ public class MainActivity extends AppCompatActivity {
     public static final String STATUS_CONNECTING = "connecting";
     public static final String STATUS_CONNECTING_PSIPHON = "connecting_psiphon";
     public static final String STATUS_CONNECTED = "connected";
+    public static final String STATUS_VERIFYING = "verifying";
     public static final String STATUS_ERROR = "error";
     public static final String STATUS_TRYING_NEXT = "trying_next";
+    public static final String EXTRA_IP = "ip_address";
+    public static final String EXTRA_COUNTRY = "ip_country";
 
     private enum State { DISCONNECTED, CONNECTING, CONNECTED }
 
@@ -38,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btnConnect;
     private TextView tvStatus;
+    private TextView tvIpAddress;
     private ConfigStorage configStorage;
 
     private final ActivityResultLauncher<Intent> vpnPermissionLauncher =
@@ -64,10 +68,24 @@ public class MainActivity extends AppCompatActivity {
             switch (status) {
                 case STATUS_CONNECTED:
                     setState(State.CONNECTED);
+                    String ip = intent.getStringExtra(EXTRA_IP);
+                    if (ip != null && tvIpAddress != null) {
+                        String country = intent.getStringExtra(EXTRA_COUNTRY);
+                        if (country != null && !country.isEmpty()) {
+                            tvIpAddress.setText(getString(R.string.ip_label_with_country, ip, country));
+                        } else {
+                            tvIpAddress.setText(getString(R.string.ip_label, ip));
+                        }
+                        tvIpAddress.setVisibility(View.VISIBLE);
+                    }
                     break;
                 case STATUS_CONNECTING:
                 case STATUS_CONNECTING_PSIPHON:
                     setState(State.CONNECTING);
+                    break;
+                case STATUS_VERIFYING:
+                    setState(State.CONNECTING);
+                    tvStatus.setText(R.string.status_verifying);
                     break;
                 case STATUS_TRYING_NEXT:
                     setState(State.CONNECTING);
@@ -98,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnConnect = findViewById(R.id.btnConnect);
         tvStatus = findViewById(R.id.tvStatus);
+        tvIpAddress = findViewById(R.id.tvIpAddress);
         View btnSettings = findViewById(R.id.btnSettings);
 
         btnConnect.setOnClickListener(v -> onConnectClicked());
@@ -175,12 +194,19 @@ public class MainActivity extends AppCompatActivity {
                 btnConnect.setText(R.string.connect);
                 tvStatus.setText(R.string.status_disconnected);
                 tvStatus.setTextColor(getResources().getColor(R.color.btn_disconnected, null));
+                if (tvIpAddress != null) {
+                    tvIpAddress.setText("");
+                    tvIpAddress.setVisibility(View.GONE);
+                }
                 break;
             case CONNECTING:
                 btnConnect.setBackgroundResource(R.drawable.btn_connect_connecting);
                 btnConnect.setText(R.string.disconnect);
                 tvStatus.setText(R.string.status_connecting);
                 tvStatus.setTextColor(getResources().getColor(R.color.btn_connecting, null));
+                if (tvIpAddress != null) {
+                    tvIpAddress.setVisibility(View.GONE);
+                }
                 break;
             case CONNECTED:
                 btnConnect.setBackgroundResource(R.drawable.btn_connect_connected);

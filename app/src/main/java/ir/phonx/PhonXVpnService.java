@@ -30,6 +30,7 @@ public class PhonXVpnService extends VpnService {
 
     private XrayController xrayController;
     private PsiphonController psiphonController;
+    private IpChecker ipChecker;
     private PowerManager.WakeLock wakeLock;
 
     // Raw TUN fd owned by Xray after detachFd(); kept so we can close on stop
@@ -43,6 +44,7 @@ public class PhonXVpnService extends VpnService {
         super.onCreate();
         xrayController    = new XrayController(this);
         psiphonController = new PsiphonController(this);
+        ipChecker         = createIpChecker();
         createNotificationChannel();
     }
 
@@ -134,11 +136,34 @@ public class PhonXVpnService extends VpnService {
 
                         xrayController.start(config, rawTunFd, psiphonSocksPort);
 
-                        // SUCCESS
-                        updateNotification(getString(R.string.status_connected));
-                        broadcastStatus(MainActivity.STATUS_CONNECTED);
-                        Log.i(TAG, "VPN started with config: " + entry.displayName
+                        // Xray started — now verify the tunnel works
+                        Log.i(TAG, "Xray started with config: " + entry.displayName
                                 + (psiphonSocksPort > 0 ? " (via Psiphon)" : " (direct)"));
+                        broadcastStatus(MainActivity.STATUS_VERIFYING);
+                        updateNotification(getString(R.string.status_verifying));
+
+                        ipChecker.checkIp(XrayController.LOCAL_SOCKS_PORT, new IpChecker.Callback() {
+                            @Override
+                            public void onIpResult(IpChecker.IpInfo info) {
+                                if (!stopping) {
+                                    broadcastConnected(info.ip, info.country);
+                                    String display = info.country.isEmpty()
+                                            ? info.ip
+                                            : info.ip + " — " + info.country;
+                                    updateNotification(getString(R.string.status_connected_with_ip, display));
+                                    Log.i(TAG, "VPN verified, exit IP: " + info.ip
+                                            + " (" + info.country + ")");
+                                }
+                            }
+                            @Override
+                            public void onIpError(String error) {
+                                if (!stopping) {
+                                    Log.e(TAG, "IP verification failed: " + error);
+                                    broadcastError(getString(R.string.error_prefix, error));
+                                    stopVpn();
+                                }
+                            }
+                        });
                         return;
 
                     } catch (Throwable t) {
@@ -246,7 +271,23 @@ public class PhonXVpnService extends VpnService {
         if (nm != null) nm.notify(NOTIF_ID, buildNotification(text));
     }
 
+    // ── Factory (package-private for test override) ─────────────────────────
+
+    IpChecker createIpChecker() {
+        return new IpChecker();
+    }
+
     // ── Broadcasts ───────────────────────────────────────────────────────────
+
+    private void broadcastConnected(String ip, String country) {
+        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+        i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+        i.putExtra(MainActivity.EXTRA_IP, ip);
+        if (country != null && !country.isEmpty()) {
+            i.putExtra(MainActivity.EXTRA_COUNTRY, country);
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+    }
 
     private void broadcastStatus(String status) {
         Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);

@@ -1,6 +1,7 @@
 package ir.phonx;
 
 import android.content.Intent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -250,6 +251,116 @@ public class MainActivityTest {
             i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
             LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
             ShadowLooper.idleMainLooper();
+        });
+    }
+
+    // ── IP verification tests ─────────────────────────────────────────────────
+
+    @Test
+    public void initialState_ipAddressHidden() {
+        scenario.onActivity(activity -> {
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.GONE, tvIp.getVisibility());
+        });
+    }
+
+    @Test
+    public void broadcast_connectedWithIp_displaysIpAddress() {
+        scenario.onActivity(activity -> {
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.VISIBLE, tvIp.getVisibility());
+            assertEquals(activity.getString(R.string.ip_label, "1.2.3.4"),
+                    tvIp.getText().toString());
+        });
+    }
+
+    @Test
+    public void broadcast_disconnected_clearsIpAddress() {
+        scenario.onActivity(activity -> {
+            // First connect with IP
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+
+            // Then disconnect
+            sendVpnStatus(activity, MainActivity.STATUS_DISCONNECTED);
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.GONE, tvIp.getVisibility());
+        });
+    }
+
+    @Test
+    public void broadcast_verifying_showsVerifyingText() {
+        scenario.onActivity(activity -> {
+            sendVpnStatus(activity, MainActivity.STATUS_VERIFYING);
+            TextView tvStatus = activity.findViewById(R.id.tvStatus);
+            assertEquals(activity.getString(R.string.status_verifying),
+                    tvStatus.getText().toString());
+            // Button should show Disconnect (CONNECTING state)
+            Button btn = activity.findViewById(R.id.btnConnect);
+            assertEquals(activity.getString(R.string.disconnect), btn.getText().toString());
+            // IP should be hidden
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.GONE, tvIp.getVisibility());
+        });
+    }
+
+    @Test
+    public void broadcast_connecting_hidesIpAddress() {
+        scenario.onActivity(activity -> {
+            // First connect with IP showing
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+
+            // Now go to connecting
+            sendVpnStatus(activity, MainActivity.STATUS_CONNECTING);
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.GONE, tvIp.getVisibility());
+        });
+    }
+
+    @Test
+    public void broadcast_connectedWithIpAndCountry_displaysCountry() {
+        scenario.onActivity(activity -> {
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+            i.putExtra(MainActivity.EXTRA_IP, "5.6.7.8");
+            i.putExtra(MainActivity.EXTRA_COUNTRY, "Germany");
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.VISIBLE, tvIp.getVisibility());
+            assertEquals(activity.getString(R.string.ip_label_with_country, "5.6.7.8", "Germany"),
+                    tvIp.getText().toString());
+        });
+    }
+
+    @Test
+    public void broadcast_connectedWithIpNoCountry_displaysIpOnly() {
+        scenario.onActivity(activity -> {
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
+            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
+            // No EXTRA_COUNTRY
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+
+            TextView tvIp = activity.findViewById(R.id.tvIpAddress);
+            assertEquals(View.VISIBLE, tvIp.getVisibility());
+            assertEquals(activity.getString(R.string.ip_label, "1.2.3.4"),
+                    tvIp.getText().toString());
         });
     }
 }

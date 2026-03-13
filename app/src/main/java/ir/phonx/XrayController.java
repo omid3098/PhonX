@@ -23,6 +23,7 @@ import phonxcore.Phonxcore;
 public class XrayController {
 
     private static final String TAG = "XrayController";
+    public static final int LOCAL_SOCKS_PORT = 10809;
 
     private final Context context;
     // Use fully qualified name to avoid collision with this class's name
@@ -104,6 +105,13 @@ public class XrayController {
             + "      \"protocol\": \"tun\",\n"
             + "      \"settings\": {\"mtu\": 1500, \"userLevel\": 0},\n"
             + "      \"tag\": \"tun-in\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"protocol\": \"socks\",\n"
+            + "      \"port\": " + LOCAL_SOCKS_PORT + ",\n"
+            + "      \"listen\": \"127.0.0.1\",\n"
+            + "      \"settings\": {\"auth\": \"noauth\"},\n"
+            + "      \"tag\": \"socks-in\"\n"
             + "    }\n"
             + "  ],\n"
             + "  \"outbounds\": [\n"

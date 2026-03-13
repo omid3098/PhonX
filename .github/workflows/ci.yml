@@ -43,7 +43,7 @@ jobs:
 
       - name: Vendor Go modules
         working-directory: phonxcore
-        run: go mod vendor
+        run: GOOS=android go mod vendor
 
       - name: Build AAR
         working-directory: phonxcore

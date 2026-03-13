@@ -2,8 +2,12 @@
 <resources>
     <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@color/bg_dark</item>
-        <item name="android:statusBarColor">@color/bg_dark</item>
-        <item name="android:navigationBarColor">@color/bottom_nav_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+
         <item name="colorPrimary">@color/md_primary</item>
         <item name="colorOnPrimary">@color/md_on_primary</item>
         <item name="colorPrimaryContainer">@color/md_primary_container</item>
@@ -16,24 +20,28 @@
         <item name="android:fontFamily">@font/inter</item>
     </style>
 
+    <style name="ShapeAppearance_PhonX_Circle" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="ShapeAppearance_PhonX_Card" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerSize">16dp</item>
+    </style>
+
     <!-- Text appearance styles -->
-    <style name="TextAppearance.PhonX.Title" parent="TextAppearance.Material3.HeadlineMedium">
+    <style name="TextAppearance_PhonX_Title" parent="TextAppearance.Material3.HeadlineSmall">
         <item name="android:textColor">@color/text_primary</item>
-        <item name="android:textSize">32sp</item>
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:letterSpacing">0.15</item>
+        <item name="android:letterSpacing">0.05</item>
     </style>
 
-    <style name="TextAppearance.PhonX.ConnectButton" parent="TextAppearance.Material3.TitleLarge">
+    <style name="TextAppearance_PhonX_ConnectButton" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textColor">@color/text_primary</item>
-        <item name="android:textSize">22sp</item>
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.PhonX.Status" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textSize">18sp</item>
-        <item name="android:fontFamily">@font/inter</item>
+    <style name="TextAppearance_PhonX_Status" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:letterSpacing">0.05</item>
     </style>
 </resources>

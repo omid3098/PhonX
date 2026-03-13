@@ -1,51 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:background="@color/bg_dark">
 
-    <!-- Settings title -->
-    <TextView
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/settings_title"
-        android:textAppearance="@style/TextAppearance.PhonX.Title"
-        android:textSize="22sp"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
-    <!-- Scrollable content -->
-    <ScrollView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/settings_title"
+            app:titleCentered="true"
+            app:titleTextAppearance="@style/TextAppearance_PhonX_Title" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:clipToPadding="false">
 
             <!-- Psiphon toggle card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/input_bg"
-                app:cardCornerRadius="12dp"
-                app:strokeWidth="0dp"
-                app:cardElevation="0dp"
-                app:contentPadding="16dp">
+                style="@style/Widget.Material3.CardView.Filled"
+                app:cardBackgroundColor="@color/md_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:padding="16dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -58,15 +63,15 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/psiphon_toggle_title"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp" />
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="@color/text_primary" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/psiphon_toggle_desc"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/text_secondary"
-                            android:textSize="13sp"
                             android:layout_marginTop="4dp" />
 
                     </LinearLayout>
@@ -74,8 +79,7 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchPsiphon"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
@@ -85,18 +89,18 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardBackgroundColor="@color/input_bg"
-                app:cardCornerRadius="12dp"
-                app:strokeWidth="0dp"
-                app:cardElevation="0dp"
-                app:contentPadding="16dp">
+                android:layout_marginBottom="24dp"
+                style="@style/Widget.Material3.CardView.Filled"
+                app:cardBackgroundColor="@color/md_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:padding="16dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -109,15 +113,15 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/try_all_title"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp" />
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="@color/text_primary" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/try_all_desc"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/text_secondary"
-                            android:textSize="13sp"
                             android:layout_marginTop="4dp" />
 
                     </LinearLayout>
@@ -125,8 +129,7 @@
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchTryAll"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true" />
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
@@ -137,22 +140,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/server_configs"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Empty state -->
-            <TextView
-                android:id="@+id/tvEmptyConfigs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/no_configs"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:paddingTop="16dp"
-                android:paddingBottom="16dp"
-                android:visibility="gone" />
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/md_primary"
+                android:layout_marginBottom="12dp"
+                android:layout_marginStart="4dp" />
 
             <!-- Config list -->
             <androidx.recyclerview.widget.RecyclerView
@@ -162,6 +153,19 @@
                 android:layout_marginBottom="16dp"
                 android:nestedScrollingEnabled="false" />
 
+            <!-- Empty state -->
+            <TextView
+                android:id="@+id/tvEmptyConfigs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/no_configs"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:paddingTop="24dp"
+                android:paddingBottom="24dp"
+                android:visibility="gone" />
+
             <!-- Server URI input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
@@ -169,6 +173,7 @@
                 android:layout_marginBottom="16dp"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:hint="@string/settings_hint"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance_PhonX_Card"
                 app:boxStrokeColor="@color/md_primary"
                 app:hintTextColor="@color/text_secondary">
 
@@ -176,12 +181,10 @@
                     android:id="@+id/etServerUri"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="14sp"
                     android:inputType="textMultiLine|textNoSuggestions"
                     android:gravity="top"
-                    android:textIsSelectable="true"
                     android:minLines="3" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -192,10 +195,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="@string/add_config"
-                android:textSize="18sp" />
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                app:cornerRadius="16dp" />
+
+            <!-- Space for navigation bar -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="80dp" />
 
         </LinearLayout>
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

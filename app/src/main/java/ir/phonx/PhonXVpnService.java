@@ -14,7 +14,6 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.Collections;
 import java.util.List;
@@ -71,7 +70,7 @@ public class PhonXVpnService extends VpnService {
         } else {
             startForeground(NOTIF_ID, buildNotification(getString(R.string.status_connecting)));
         }
-        broadcastStatus(MainActivity.STATUS_CONNECTING);
+        VpnStatusManager.getInstance().broadcastStatus(MainActivity.STATUS_CONNECTING);
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         if (pm != null) {
@@ -98,7 +97,7 @@ public class PhonXVpnService extends VpnService {
                 // Step 2: If Psiphon is enabled, start once (reused across all attempts)
                 int psiphonSocksPort = 0;
                 if (storage.isPsiphonEnabled()) {
-                    broadcastStatus(MainActivity.STATUS_CONNECTING_PSIPHON);
+                    VpnStatusManager.getInstance().broadcastStatus(MainActivity.STATUS_CONNECTING_PSIPHON);
                     updateNotification(getString(R.string.status_connecting_psiphon));
                     psiphonSocksPort = psiphonController.start(this);
                     Log.i(TAG, "Psiphon ready, SOCKS port=" + psiphonSocksPort);
@@ -117,11 +116,11 @@ public class PhonXVpnService extends VpnService {
                         ConfigParser.ProxyConfig config = ConfigParser.parse(entry.rawUri);
 
                         if (i > 0) {
-                            broadcastTryingNext(i + 1, configsToTry.size(), entry.displayName);
+                            VpnStatusManager.getInstance().broadcastTryingNext(i + 1, configsToTry.size(), entry.displayName);
                         }
 
                         // Create TUN for this attempt
-                        ParcelFileDescriptor tunPfd = new Builder()
+                        try (ParcelFileDescriptor tunPfd = new Builder()
                             .addAddress("10.0.0.2", 24)
                             .addRoute("0.0.0.0", 0)
                             .addDnsServer("8.8.8.8")
@@ -129,24 +128,24 @@ public class PhonXVpnService extends VpnService {
                             .setMtu(1500)
                             .addDisallowedApplication(getPackageName())
                             .setSession("PhonX")
-                            .establish();
-
-                        if (tunPfd == null) throw new Exception("Failed to create TUN (permission revoked?)");
-                        rawTunFd = tunPfd.detachFd();
+                            .establish()) {
+                            if (tunPfd == null) throw new Exception("Failed to create TUN (permission revoked?)");
+                            rawTunFd = tunPfd.detachFd();
+                        }
 
                         xrayController.start(config, rawTunFd, psiphonSocksPort);
 
                         // Xray started — now verify the tunnel works
                         Log.i(TAG, "Xray started with config: " + entry.displayName
                                 + (psiphonSocksPort > 0 ? " (via Psiphon)" : " (direct)"));
-                        broadcastStatus(MainActivity.STATUS_VERIFYING);
+                        VpnStatusManager.getInstance().broadcastStatus(MainActivity.STATUS_VERIFYING);
                         updateNotification(getString(R.string.status_verifying));
 
                         ipChecker.checkIp(XrayController.LOCAL_SOCKS_PORT, new IpChecker.Callback() {
                             @Override
                             public void onIpResult(IpChecker.IpInfo info) {
                                 if (!stopping) {
-                                    broadcastConnected(info.ip, info.country);
+                                    VpnStatusManager.getInstance().broadcastConnected(info.ip, info.country);
                                     String display = info.country.isEmpty()
                                             ? info.ip
                                             : info.ip + " — " + info.country;
@@ -159,7 +158,7 @@ public class PhonXVpnService extends VpnService {
                             public void onIpError(String error) {
                                 if (!stopping) {
                                     Log.e(TAG, "IP verification failed: " + error);
-                                    broadcastError(getString(R.string.error_prefix, error));
+                                    VpnStatusManager.getInstance().broadcastError(error);
                                     stopVpn();
                                 }
                             }
@@ -180,6 +179,7 @@ public class PhonXVpnService extends VpnService {
                         }
 
                         if (i < configsToTry.size() - 1) {
+                            //noinspection BusyWait — intentional delay between config retries
                             Thread.sleep(1000);
                         }
                     }
@@ -191,7 +191,7 @@ public class PhonXVpnService extends VpnService {
             } catch (Throwable t) {
                 if (!stopping) {
                     Log.e(TAG, "Failed to start VPN", t);
-                    broadcastError(t.getMessage());
+                    VpnStatusManager.getInstance().broadcastError(t.getMessage());
                 }
                 stopVpn();
             }
@@ -219,7 +219,7 @@ public class PhonXVpnService extends VpnService {
             wakeLock = null;
         }
 
-        broadcastStatus(MainActivity.STATUS_DISCONNECTED);
+        VpnStatusManager.getInstance().broadcastStatus(MainActivity.STATUS_DISCONNECTED);
         stopForeground(true);
         stopSelf();
     }
@@ -275,42 +275,5 @@ public class PhonXVpnService extends VpnService {
 
     IpChecker createIpChecker() {
         return new IpChecker(new GeoIpLookup(this));
-    }
-
-    // ── Broadcasts ───────────────────────────────────────────────────────────
-
-    private void broadcastConnected(String ip, String country) {
-        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-        i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-        i.putExtra(MainActivity.EXTRA_IP, ip);
-        if (country != null && !country.isEmpty()) {
-            i.putExtra(MainActivity.EXTRA_COUNTRY, country);
-        }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
-    }
-
-    private void broadcastStatus(String status) {
-        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-        i.putExtra(MainActivity.EXTRA_STATUS, status);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
-    }
-
-    private void broadcastError(String message) {
-        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-        i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_ERROR);
-        if (message != null) i.putExtra("message", message);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
-    }
-
-    private void broadcastTryingNext(int attempt, int total, String configName) {
-        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-        i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
-        i.putExtra("attempt", attempt);
-        i.putExtra("total", total);
-        i.putExtra("config_name", configName);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
-
-        String notifText = getString(R.string.status_trying_config, attempt, total);
-        updateNotification(notifText);
     }
 }

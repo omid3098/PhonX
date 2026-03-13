@@ -1,26 +1,26 @@
 package ir.phonx;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements VpnStatusManager.Listener {
 
     public static final String ACTION_VPN_STATUS = "ir.phonx.VPN_STATUS";
     public static final String EXTRA_STATUS = "STATUS";
@@ -70,65 +70,20 @@ public class MainActivity extends AppCompatActivity {
                 requestVpnPermissionAndStart();
             });
 
-    private final BroadcastReceiver statusReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String status = intent.getStringExtra(EXTRA_STATUS);
-            if (status == null) return;
-            switch (status) {
-                case STATUS_CONNECTED:
-                    String ip = intent.getStringExtra(EXTRA_IP);
-                    String country = intent.getStringExtra(EXTRA_COUNTRY);
-                    lastIp = ip;
-                    lastCountry = country;
-                    setState(State.CONNECTED);
-                    break;
-                case STATUS_CONNECTING:
-                case STATUS_CONNECTING_PSIPHON:
-                    setState(State.CONNECTING);
-                    break;
-                case STATUS_VERIFYING:
-                    setState(State.CONNECTING);
-                    if (stateListener != null) {
-                        stateListener.onStatusText(getString(R.string.status_verifying));
-                    }
-                    break;
-                case STATUS_TRYING_NEXT:
-                    setState(State.CONNECTING);
-                    int attempt = intent.getIntExtra("attempt", 0);
-                    int total = intent.getIntExtra("total", 0);
-                    if (stateListener != null) {
-                        stateListener.onStatusText(getString(R.string.status_trying_config, attempt, total));
-                    }
-                    break;
-                case STATUS_DISCONNECTED:
-                    lastIp = null;
-                    lastCountry = null;
-                    setState(State.DISCONNECTED);
-                    break;
-                case STATUS_ERROR:
-                    lastIp = null;
-                    lastCountry = null;
-                    setState(State.DISCONNECTED);
-                    String msg = intent.getStringExtra("message");
-                    if (msg != null) {
-                        Toast.makeText(MainActivity.this, getString(R.string.error_prefix, msg), Toast.LENGTH_LONG).show();
-                        if (stateListener != null) {
-                            stateListener.onError(msg);
-                        }
-                    }
-                    break;
-            }
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         configStorage = new ConfigStorage(this);
         bottomNav = findViewById(R.id.bottomNav);
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_layout), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, 0, systemBars.right, 0);
+            return insets;
+        });
 
         if (savedInstanceState == null) {
             homeFragment = new HomeFragment();
@@ -166,16 +121,59 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                statusReceiver, new IntentFilter(ACTION_VPN_STATUS));
+    protected void onStart() {
+        super.onStart();
+        VpnStatusManager.getInstance().register(this);
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(statusReceiver);
+    protected void onStop() {
+        super.onStop();
+        VpnStatusManager.getInstance().unregister(this);
+    }
+
+    @Override
+    public void onVpnStatusChanged(String status, String ip, String country, int attempt, int total, String configName, String message) {
+        if (status == null) return;
+        switch (status) {
+            case STATUS_CONNECTED:
+                lastIp = ip;
+                lastCountry = country;
+                setState(State.CONNECTED);
+                break;
+            case STATUS_CONNECTING:
+            case STATUS_CONNECTING_PSIPHON:
+                setState(State.CONNECTING);
+                break;
+            case STATUS_VERIFYING:
+                setState(State.CONNECTING);
+                if (stateListener != null) {
+                    stateListener.onStatusText(getString(R.string.status_verifying));
+                }
+                break;
+            case STATUS_TRYING_NEXT:
+                setState(State.CONNECTING);
+                if (stateListener != null) {
+                    stateListener.onStatusText(getString(R.string.status_trying_config, attempt, total));
+                }
+                break;
+            case STATUS_DISCONNECTED:
+                lastIp = null;
+                lastCountry = null;
+                setState(State.DISCONNECTED);
+                break;
+            case STATUS_ERROR:
+                lastIp = null;
+                lastCountry = null;
+                setState(State.DISCONNECTED);
+                if (message != null) {
+                    Toast.makeText(this, getString(R.string.error_prefix, message), Toast.LENGTH_LONG).show();
+                    if (stateListener != null) {
+                        stateListener.onError(message);
+                    }
+                }
+                break;
+        }
     }
 
     // Called by HomeFragment

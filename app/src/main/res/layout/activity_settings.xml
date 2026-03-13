@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/settings_title"
-            android:textAppearance="@style/TextAppearance.PhonX.Title"
+            android:textAppearance="@style/TextAppearance_PhonX_Title"
             android:textSize="22sp"
             android:gravity="center" />
 

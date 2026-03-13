@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#1A1A2E</color>
-    <color name="btn_connected">#00C851</color>
-    <color name="btn_connecting">#FFBB33</color>
-    <color name="btn_disconnected">#666666</color>
+    <!-- Brand colors -->
+    <color name="bg_dark">#0F0F1A</color>
+    <color name="btn_connected">#00E676</color>
+    <color name="btn_connecting">#FFD600</color>
+    <color name="btn_disconnected">#8E8E93</color>
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#AAAAAA</color>
-    <color name="settings_bg">#16213E</color>
-    <color name="input_bg">#0F3460</color>
+    <color name="text_secondary">#98989F</color>
 
-    <!-- Material 3 semantic colors -->
-    <color name="md_primary">#00C851</color>
-    <color name="md_on_primary">#FFFFFF</color>
-    <color name="md_primary_container">#004D1A</color>
-    <color name="md_on_primary_container">#80E8A0</color>
-    <color name="md_surface">#1A1A2E</color>
-    <color name="md_on_surface">#FFFFFF</color>
-    <color name="md_surface_variant">#16213E</color>
-    <color name="md_on_surface_variant">#AAAAAA</color>
-    <color name="md_outline">#444444</color>
-    <color name="md_outline_variant">#333333</color>
-    <color name="bottom_nav_bg">#12122A</color>
+    <!-- UI Backgrounds -->
+    <color name="settings_bg">#0F0F1A</color>
+    <color name="input_bg">#1C1C2E</color>
+
+    <!-- Material 3 Dark theme colors -->
+    <color name="md_primary">#00E676</color>
+    <color name="md_on_primary">#00391C</color>
+    <color name="md_primary_container">#00522B</color>
+    <color name="md_on_primary_container">#80FFBB</color>
+    <color name="md_surface">#0F0F1A</color>
+    <color name="md_on_surface">#E2E2E6</color>
+    <color name="md_surface_variant">#1C1C2E</color>
+    <color name="md_on_surface_variant">#C4C6D0</color>
+    <color name="md_outline">#8E9099</color>
+    <color name="md_outline_variant">#44474E</color>
+    <color name="bottom_nav_bg">#141424</color>
 </resources>

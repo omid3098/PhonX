@@ -83,8 +83,9 @@ for arch in arm arm64; do
     export CXX="$(cygpath -w "$CXX_BIN")"
     [ -n "$EXTRA_GOARM" ] && export GOARM="$EXTRA_GOARM"
 
+    # Add -extldflags '-Wl,-z,max-page-size=16384' for 16 KB page support
     go build -mod=vendor -tags PSIPHON_DISABLE_INPROXY \
-      -trimpath -ldflags="-s -w" \
+      -trimpath -ldflags="-s -w -extldflags '-Wl,-z,max-page-size=16384'" \
       -buildmode=c-shared \
       -o "$JNIDIR_W\\libgojni.so" \
       ./cmd/gobind

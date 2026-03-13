@@ -53,10 +53,11 @@ jobs:
 
       - name: Build AAR
         working-directory: phonxcore
+        env:
+          GOFLAGS: -mod=vendor
         run: |
           gomobile bind \
             -v \
-            -mod=vendor \
             -tags "PSIPHON_DISABLE_INPROXY" \
             -target=android/arm,android/arm64 \
             -androidapi 24 \

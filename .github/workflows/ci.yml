@@ -137,8 +137,10 @@ jobs:
           name: phonxcore-aar
           path: app/libs
 
-      - name: Verify AAR is in place
-        run: ls -lh app/libs/phonxcore.aar
+      - name: Prepare build
+        run: |
+          ls -lh app/libs/phonxcore.aar
+          chmod +x gradlew
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

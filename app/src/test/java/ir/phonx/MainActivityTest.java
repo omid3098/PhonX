@@ -6,7 +6,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.lifecycle.Lifecycle;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.test.core.app.ActivityScenario;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -35,6 +34,28 @@ public class MainActivityTest {
         scenario.close();
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────────
+
+    private void sendVpnStatus(String status) {
+        VpnStatusManager.getInstance().broadcastStatus(status);
+        ShadowLooper.idleMainLooper();
+    }
+
+    private void sendConnected(String ip, String country) {
+        VpnStatusManager.getInstance().broadcastConnected(ip, country);
+        ShadowLooper.idleMainLooper();
+    }
+
+    private void sendError(String message) {
+        VpnStatusManager.getInstance().broadcastError(message);
+        ShadowLooper.idleMainLooper();
+    }
+
+    private void sendTryingNext(int attempt, int total) {
+        VpnStatusManager.getInstance().broadcastTryingNext(attempt, total, null);
+        ShadowLooper.idleMainLooper();
+    }
+
     // ── Initial state ─────────────────────────────────────────────────────────
 
     @Test
@@ -53,19 +74,12 @@ public class MainActivityTest {
         });
     }
 
-    // ── Broadcast → state transitions ─────────────────────────────────────────
-
-    private void sendVpnStatus(MainActivity activity, String status) {
-        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-        i.putExtra(MainActivity.EXTRA_STATUS, status);
-        LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-        ShadowLooper.idleMainLooper();
-    }
+    // ── Status → state transitions ──────────────────────────────────────────────
 
     @Test
     public void broadcast_connected_buttonShowsDisconnect() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTED);
+            sendVpnStatus(MainActivity.STATUS_CONNECTED);
             Button btn = activity.findViewById(R.id.btnConnect);
             assertEquals(activity.getString(R.string.disconnect), btn.getText().toString());
         });
@@ -74,7 +88,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_connecting_buttonShowsDisconnect() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTING);
+            sendVpnStatus(MainActivity.STATUS_CONNECTING);
             Button btn = activity.findViewById(R.id.btnConnect);
             assertEquals(activity.getString(R.string.disconnect), btn.getText().toString());
         });
@@ -84,9 +98,9 @@ public class MainActivityTest {
     public void broadcast_disconnected_buttonShowsConnect() {
         scenario.onActivity(activity -> {
             // First go to connected
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTED);
+            sendVpnStatus(MainActivity.STATUS_CONNECTED);
             // Then disconnect
-            sendVpnStatus(activity, MainActivity.STATUS_DISCONNECTED);
+            sendVpnStatus(MainActivity.STATUS_DISCONNECTED);
             Button btn = activity.findViewById(R.id.btnConnect);
             assertEquals(activity.getString(R.string.connect), btn.getText().toString());
         });
@@ -95,13 +109,9 @@ public class MainActivityTest {
     @Test
     public void broadcast_error_setsDisconnectedState() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTED);
+            sendVpnStatus(MainActivity.STATUS_CONNECTED);
             // Error should revert to DISCONNECTED state
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_ERROR);
-            i.putExtra("message", "Connection failed");
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendError("Connection failed");
             Button btn = activity.findViewById(R.id.btnConnect);
             assertEquals(activity.getString(R.string.connect), btn.getText().toString());
         });
@@ -110,9 +120,8 @@ public class MainActivityTest {
     @Test
     public void broadcast_noStatus_noStateChange() {
         scenario.onActivity(activity -> {
-            // Intent with no EXTRA_STATUS — should be a no-op
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            // Null status — should be a no-op
+            VpnStatusManager.getInstance().broadcastStatus(null, null, null, 0, 0, null, null);
             ShadowLooper.idleMainLooper();
             // Still in initial DISCONNECTED state
             Button btn = activity.findViewById(R.id.btnConnect);
@@ -125,7 +134,7 @@ public class MainActivityTest {
     @Test
     public void click_whenConnected_sendsStopIntent() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTED);
+            sendVpnStatus(MainActivity.STATUS_CONNECTED);
             Button btn = activity.findViewById(R.id.btnConnect);
             btn.performClick();
             // Should call stopVpnService() → startService(ACTION_STOP intent)
@@ -138,7 +147,7 @@ public class MainActivityTest {
     @Test
     public void click_whenConnecting_sendsStopIntent() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTING);
+            sendVpnStatus(MainActivity.STATUS_CONNECTING);
             Button btn = activity.findViewById(R.id.btnConnect);
             btn.performClick();
             Intent started = Shadows.shadowOf(activity.getApplication()).getNextStartedService();
@@ -188,12 +197,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_tryingNext_staysInConnectingState() {
         scenario.onActivity(activity -> {
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
-            i.putExtra("attempt", 2);
-            i.putExtra("total", 3);
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendTryingNext(2, 3);
             Button btn = activity.findViewById(R.id.btnConnect);
             assertEquals(activity.getString(R.string.disconnect), btn.getText().toString());
         });
@@ -202,12 +206,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_tryingNext_updatesStatusText() {
         scenario.onActivity(activity -> {
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
-            i.putExtra("attempt", 2);
-            i.putExtra("total", 3);
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendTryingNext(2, 3);
             TextView tv = activity.findViewById(R.id.tvStatus);
             String expected = activity.getString(R.string.status_trying_config, 2, 3);
             assertEquals(expected, tv.getText().toString());
@@ -234,15 +233,12 @@ public class MainActivityTest {
     }
 
     @Test
-    public void onPause_unregistersReceiver_broadcastAfterPauseNoCrash() {
-        scenario.moveToState(Lifecycle.State.STARTED); // triggers onPause()
-        scenario.onActivity(activity -> {
-            // Should not crash — receiver is unregistered
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
-        });
+    public void onStop_unregisters_broadcastAfterStopNoCrash() {
+        scenario.moveToState(Lifecycle.State.CREATED);
+        // Activity is now stopped — unregistered from VpnStatusManager
+        // Sending a status should not crash
+        VpnStatusManager.getInstance().broadcastStatus(MainActivity.STATUS_CONNECTED);
+        ShadowLooper.idleMainLooper();
     }
 
     // ── IP verification tests ─────────────────────────────────────────────────
@@ -258,11 +254,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_connectedWithIp_displaysIpAddress() {
         scenario.onActivity(activity -> {
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendConnected("1.2.3.4", null);
 
             TextView tvIp = activity.findViewById(R.id.tvIpAddress);
             assertEquals(View.VISIBLE, tvIp.getVisibility());
@@ -275,14 +267,10 @@ public class MainActivityTest {
     public void broadcast_disconnected_clearsIpAddress() {
         scenario.onActivity(activity -> {
             // First connect with IP
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendConnected("1.2.3.4", null);
 
             // Then disconnect
-            sendVpnStatus(activity, MainActivity.STATUS_DISCONNECTED);
+            sendVpnStatus(MainActivity.STATUS_DISCONNECTED);
             TextView tvIp = activity.findViewById(R.id.tvIpAddress);
             assertEquals(View.GONE, tvIp.getVisibility());
         });
@@ -291,7 +279,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_verifying_showsVerifyingText() {
         scenario.onActivity(activity -> {
-            sendVpnStatus(activity, MainActivity.STATUS_VERIFYING);
+            sendVpnStatus(MainActivity.STATUS_VERIFYING);
             TextView tvStatus = activity.findViewById(R.id.tvStatus);
             assertEquals(activity.getString(R.string.status_verifying),
                     tvStatus.getText().toString());
@@ -308,14 +296,10 @@ public class MainActivityTest {
     public void broadcast_connecting_hidesIpAddress() {
         scenario.onActivity(activity -> {
             // First connect with IP showing
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendConnected("1.2.3.4", null);
 
             // Now go to connecting
-            sendVpnStatus(activity, MainActivity.STATUS_CONNECTING);
+            sendVpnStatus(MainActivity.STATUS_CONNECTING);
             TextView tvIp = activity.findViewById(R.id.tvIpAddress);
             assertEquals(View.GONE, tvIp.getVisibility());
         });
@@ -324,12 +308,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_connectedWithIpAndCountry_displaysCountry() {
         scenario.onActivity(activity -> {
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            i.putExtra(MainActivity.EXTRA_IP, "5.6.7.8");
-            i.putExtra(MainActivity.EXTRA_COUNTRY, "Germany");
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendConnected("5.6.7.8", "Germany");
 
             TextView tvIp = activity.findViewById(R.id.tvIpAddress);
             assertEquals(View.VISIBLE, tvIp.getVisibility());
@@ -341,12 +320,7 @@ public class MainActivityTest {
     @Test
     public void broadcast_connectedWithIpNoCountry_displaysIpOnly() {
         scenario.onActivity(activity -> {
-            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
-            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_CONNECTED);
-            i.putExtra(MainActivity.EXTRA_IP, "1.2.3.4");
-            // No EXTRA_COUNTRY
-            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
-            ShadowLooper.idleMainLooper();
+            sendConnected("1.2.3.4", null);
 
             TextView tvIp = activity.findViewById(R.id.tvIpAddress);
             assertEquals(View.VISIBLE, tvIp.getVisibility());

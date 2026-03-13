@@ -49,7 +49,12 @@ jobs:
 
       - name: Vendor Go modules
         working-directory: phonxcore
-        run: go mod vendor
+        run: |
+          go mod vendor
+          # go mod vendor only copies .go files; gomobile also needs Seq.java
+          MOBILE_VER=$(awk '/golang.org\/x\/mobile/{print $2}' go.mod)
+          cp -r "$(go env GOMODCACHE)/golang.org/x/mobile@${MOBILE_VER}/bind/java" \
+            vendor/golang.org/x/mobile/bind/
 
       - name: Build AAR
         working-directory: phonxcore

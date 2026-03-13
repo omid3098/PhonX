@@ -4,8 +4,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -16,11 +14,21 @@ import java.net.URL;
 public class IpChecker {
 
     private static final String TAG = "IpChecker";
-    private static final String IP_SERVICE_URL = "https://ipwho.is/";
+    private static final String IP_SERVICE_URL = "https://api.ipify.org";
     private static final int CONNECT_TIMEOUT_MS = 10_000;
     private static final int READ_TIMEOUT_MS = 10_000;
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_DELAY_MS = 2_000;
+
+    private final GeoIpLookup geoLookup;
+
+    IpChecker() {
+        this(null);
+    }
+
+    IpChecker(GeoIpLookup geoLookup) {
+        this.geoLookup = geoLookup;
+    }
 
     public static class IpInfo {
         public final String ip;
@@ -106,18 +114,19 @@ public class IpChecker {
             }
             reader.close();
 
-            String body = sb.toString().trim();
-            if (body.isEmpty()) {
+            String ip = sb.toString().trim();
+            if (ip.isEmpty()) {
                 throw new Exception("Empty response");
             }
 
-            JSONObject json = new JSONObject(body);
-            String ip = json.optString("ip", "");
-            String country = json.optString("country", "");
-
-            if (ip.isEmpty()) {
-                throw new Exception("No IP in response");
+            // Offline country lookup via bundled MMDB database
+            String country = "";
+            if (geoLookup != null) {
+                try {
+                    country = geoLookup.lookupCountry(ip);
+                } catch (Exception ignored) {}
             }
+
             return new IpInfo(ip, country);
         } finally {
             if (conn != null) conn.disconnect();

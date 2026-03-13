@@ -274,7 +274,7 @@ public class PhonXVpnService extends VpnService {
     // ── Factory (package-private for test override) ─────────────────────────
 
     IpChecker createIpChecker() {
-        return new IpChecker();
+        return new IpChecker(new GeoIpLookup(this));
     }
 
     // ── Broadcasts ───────────────────────────────────────────────────────────

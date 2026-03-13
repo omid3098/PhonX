@@ -1,10 +1,13 @@
 package ir.phonx;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.VpnService;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.view.View;
@@ -44,6 +47,12 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "VPN permission denied", Toast.LENGTH_SHORT).show();
                     setState(State.DISCONNECTED);
                 }
+            });
+
+    private final ActivityResultLauncher<String> notifPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                // Proceed to start VPN regardless — notification is nice-to-have
+                requestVpnPermissionAndStart();
             });
 
     private final BroadcastReceiver statusReceiver = new BroadcastReceiver() {
@@ -118,6 +127,19 @@ public class MainActivity extends AppCompatActivity {
 
         setState(State.CONNECTING);
 
+        // On Android 13+, request notification permission so the VPN notification
+        // is visible in the status bar and notification shade.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                   != PackageManager.PERMISSION_GRANTED) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            return;
+        }
+
+        requestVpnPermissionAndStart();
+    }
+
+    private void requestVpnPermissionAndStart() {
         Intent vpnIntent = VpnService.prepare(this);
         if (vpnIntent != null) {
             vpnPermissionLauncher.launch(vpnIntent);

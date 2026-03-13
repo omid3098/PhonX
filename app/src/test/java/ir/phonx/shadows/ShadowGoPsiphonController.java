@@ -1,5 +1,7 @@
 package ir.phonx.shadows;
 
+import phonxcore.PsiphonCallbackHandler;
+
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 
@@ -29,6 +31,7 @@ public class ShadowGoPsiphonController {
     public static String lastDataDir = null;
     public static boolean startCalled = false;
     public static boolean stopCalled = false;
+    public static int startCallCount = 0;
 
     private boolean running = false;
 
@@ -40,11 +43,12 @@ public class ShadowGoPsiphonController {
         lastDataDir = null;
         startCalled = false;
         stopCalled = false;
+        startCallCount = 0;
     }
 
-    /** Intercepts default constructor — prevents native init. */
+    /** Intercepts constructor — prevents native init. */
     @Implementation
-    protected void __constructor__() {
+    protected void __constructor__(PsiphonCallbackHandler handler) {
         // no-op
     }
 
@@ -53,6 +57,7 @@ public class ShadowGoPsiphonController {
         lastConfigJson = configJson;
         lastDataDir = dataDir;
         startCalled = true;
+        startCallCount++;
 
         if (simulateFailure) {
             throw new Exception(simulateFailureMessage);
@@ -80,7 +85,7 @@ public class ShadowGoPsiphonController {
     }
 
     @Implementation
-    public int getSOCKSPort() {
+    public long getSOCKSPort() {
         return running ? simulatedSocksPort : 0;
     }
 }

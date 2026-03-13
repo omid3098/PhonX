@@ -16,6 +16,9 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.util.Collections;
+import java.util.List;
+
 public class PhonXVpnService extends VpnService {
 
     private static final String TAG = "PhonXVpnService";
@@ -31,6 +34,9 @@ public class PhonXVpnService extends VpnService {
 
     // Raw TUN fd owned by Xray after detachFd(); kept so we can close on stop
     private int rawTunFd = -1;
+
+    // Allows cancelling mid-fallback when user presses disconnect
+    private volatile boolean stopping = false;
 
     @Override
     public void onCreate() {
@@ -55,6 +61,8 @@ public class PhonXVpnService extends VpnService {
     // ── VPN lifecycle ────────────────────────────────────────────────────────
 
     private void startVpn() {
+        stopping = false;
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIF_ID, buildNotification(getString(R.string.status_connecting)),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -72,14 +80,21 @@ public class PhonXVpnService extends VpnService {
         new Thread(() -> {
             try {
                 ConfigStorage storage = new ConfigStorage(this);
-                String uri = storage.loadUri();
-                if (uri == null || uri.isEmpty()) throw new Exception("No server config saved");
 
-                ConfigParser.ProxyConfig config = ConfigParser.parse(uri);
+                // Step 1: Build ordered config list
+                List<ConfigEntry> configsToTry;
+                if (storage.isTryAllEnabled()) {
+                    configsToTry = storage.getOrderedConfigs();
+                } else {
+                    ConfigEntry active = storage.getActiveConfig();
+                    if (active == null) throw new Exception("No server config saved");
+                    configsToTry = Collections.singletonList(active);
+                }
 
+                if (configsToTry.isEmpty()) throw new Exception("No server config saved");
+
+                // Step 2: If Psiphon is enabled, start once (reused across all attempts)
                 int psiphonSocksPort = 0;
-
-                // Step 1: If Psiphon is enabled, start Psiphon tunnel first
                 if (storage.isPsiphonEnabled()) {
                     broadcastStatus(MainActivity.STATUS_CONNECTING_PSIPHON);
                     updateNotification(getString(R.string.status_connecting_psiphon));
@@ -87,39 +102,79 @@ public class PhonXVpnService extends VpnService {
                     Log.i(TAG, "Psiphon ready, SOCKS port=" + psiphonSocksPort);
                 }
 
-                // Step 2: Build TUN interface — exclude our own app to prevent routing loop
-                ParcelFileDescriptor tunPfd = new Builder()
-                    .addAddress("10.0.0.2", 24)
-                    .addRoute("0.0.0.0", 0)
-                    .addDnsServer("8.8.8.8")
-                    .addDnsServer("8.8.4.4")
-                    .setMtu(1500)
-                    .addDisallowedApplication(getPackageName())
-                    .setSession("PhonX")
-                    .establish();
+                // Step 3: Try configs in order (fallback loop)
+                Exception lastError = null;
+                for (int i = 0; i < configsToTry.size(); i++) {
+                    if (stopping) {
+                        Log.i(TAG, "Stopping flag set, aborting config loop");
+                        return;
+                    }
 
-                if (tunPfd == null) throw new Exception("Failed to create TUN (permission revoked?)");
+                    ConfigEntry entry = configsToTry.get(i);
+                    try {
+                        ConfigParser.ProxyConfig config = ConfigParser.parse(entry.rawUri);
 
-                // Detach fd — transfer ownership to Xray core
-                rawTunFd = tunPfd.detachFd();
+                        if (i > 0) {
+                            broadcastTryingNext(i + 1, configsToTry.size(), entry.displayName);
+                        }
 
-                // Step 3: Start Xray with the TUN fd, optionally chaining through Psiphon
-                xrayController.start(config, rawTunFd, psiphonSocksPort);
+                        // Create TUN for this attempt
+                        ParcelFileDescriptor tunPfd = new Builder()
+                            .addAddress("10.0.0.2", 24)
+                            .addRoute("0.0.0.0", 0)
+                            .addDnsServer("8.8.8.8")
+                            .addDnsServer("8.8.4.4")
+                            .setMtu(1500)
+                            .addDisallowedApplication(getPackageName())
+                            .setSession("PhonX")
+                            .establish();
 
-                updateNotification(getString(R.string.status_connected));
-                broadcastStatus(MainActivity.STATUS_CONNECTED);
-                Log.i(TAG, "VPN started successfully"
-                        + (psiphonSocksPort > 0 ? " (via Psiphon)" : " (direct)"));
+                        if (tunPfd == null) throw new Exception("Failed to create TUN (permission revoked?)");
+                        rawTunFd = tunPfd.detachFd();
+
+                        xrayController.start(config, rawTunFd, psiphonSocksPort);
+
+                        // SUCCESS
+                        updateNotification(getString(R.string.status_connected));
+                        broadcastStatus(MainActivity.STATUS_CONNECTED);
+                        Log.i(TAG, "VPN started with config: " + entry.displayName
+                                + (psiphonSocksPort > 0 ? " (via Psiphon)" : " (direct)"));
+                        return;
+
+                    } catch (Throwable t) {
+                        lastError = new Exception("Config " + entry.displayName + ": " + t.getMessage());
+                        Log.w(TAG, "Config " + (i + 1) + "/" + configsToTry.size()
+                                + " failed: " + t.getMessage());
+                        xrayController.stop();
+                        // Close TUN fd from failed attempt
+                        if (rawTunFd != -1) {
+                            try {
+                                ParcelFileDescriptor.adoptFd(rawTunFd).close();
+                            } catch (Exception ignored) {}
+                            rawTunFd = -1;
+                        }
+
+                        if (i < configsToTry.size() - 1) {
+                            Thread.sleep(1000);
+                        }
+                    }
+                }
+
+                // All configs failed
+                throw lastError != null ? lastError : new Exception("All configs failed");
 
             } catch (Throwable t) {
-                Log.e(TAG, "Failed to start VPN", t);
-                broadcastError(t.getMessage());
+                if (!stopping) {
+                    Log.e(TAG, "Failed to start VPN", t);
+                    broadcastError(t.getMessage());
+                }
                 stopVpn();
             }
         }, "PhonX-VpnStart").start();
     }
 
     private void stopVpn() {
+        stopping = true;
         Log.i(TAG, "Stopping VPN");
 
         // Stop in reverse order: Xray first, then Psiphon
@@ -204,5 +259,17 @@ public class PhonXVpnService extends VpnService {
         i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_ERROR);
         if (message != null) i.putExtra("message", message);
         LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+    }
+
+    private void broadcastTryingNext(int attempt, int total, String configName) {
+        Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+        i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
+        i.putExtra("attempt", attempt);
+        i.putExtra("total", total);
+        i.putExtra("config_name", configName);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(i);
+
+        String notifText = getString(R.string.status_trying_config, attempt, total);
+        updateNotification(notifText);
     }
 }

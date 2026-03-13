@@ -190,6 +190,57 @@ public class MainActivityTest {
         });
     }
 
+    // ── STATUS_TRYING_NEXT tests ──────────────────────────────────────────────
+
+    @Test
+    public void broadcast_tryingNext_staysInConnectingState() {
+        scenario.onActivity(activity -> {
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
+            i.putExtra("attempt", 2);
+            i.putExtra("total", 3);
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+            Button btn = activity.findViewById(R.id.btnConnect);
+            assertEquals(activity.getString(R.string.disconnect), btn.getText().toString());
+        });
+    }
+
+    @Test
+    public void broadcast_tryingNext_updatesStatusText() {
+        scenario.onActivity(activity -> {
+            Intent i = new Intent(MainActivity.ACTION_VPN_STATUS);
+            i.putExtra(MainActivity.EXTRA_STATUS, MainActivity.STATUS_TRYING_NEXT);
+            i.putExtra("attempt", 2);
+            i.putExtra("total", 3);
+            LocalBroadcastManager.getInstance(activity).sendBroadcast(i);
+            ShadowLooper.idleMainLooper();
+            TextView tv = activity.findViewById(R.id.tvStatus);
+            String expected = activity.getString(R.string.status_trying_config, 2, 3);
+            assertEquals(expected, tv.getText().toString());
+        });
+    }
+
+    @Test
+    public void click_whenDisconnected_withConfigs_becomesConnecting() {
+        scenario.onActivity(activity -> {
+            // Use multi-config API
+            try {
+                ConfigStorage storage = new ConfigStorage(activity);
+                storage.addConfig(ConfigEntry.fromUri("vless://uuid@host.com:443?security=none&type=tcp"));
+            } catch (Exception e) { fail("Should not throw"); }
+            Button btn = activity.findViewById(R.id.btnConnect);
+            btn.performClick();
+            TextView tvStatus = activity.findViewById(R.id.tvStatus);
+            String text = tvStatus.getText().toString();
+            boolean isConnecting = activity.getString(R.string.status_connecting).equals(text);
+            Intent svcIntent = Shadows.shadowOf(activity.getApplication()).peekNextStartedService();
+            boolean serviceStarted = svcIntent != null &&
+                PhonXVpnService.ACTION_START.equals(svcIntent.getAction());
+            assertTrue("Should be connecting or have started service", isConnecting || serviceStarted);
+        });
+    }
+
     @Test
     public void onPause_unregistersReceiver_broadcastAfterPauseNoCrash() {
         scenario.moveToState(Lifecycle.State.STARTED); // triggers onPause()

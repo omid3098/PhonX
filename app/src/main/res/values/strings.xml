@@ -26,4 +26,13 @@
     <string name="psiphon_toggle_title">Route through Psiphon</string>
     <string name="psiphon_toggle_desc">Uses Psiphon tunnel for additional DPI bypass</string>
     <string name="status_connecting_psiphon">Connecting via Psiphon…</string>
+    <string name="try_all_title">Try all connections</string>
+    <string name="try_all_desc">If active config fails, try remaining configs one by one</string>
+    <string name="config_added_toast">Config added</string>
+    <string name="config_removed_toast">Config removed</string>
+    <string name="add_config">Add Config</string>
+    <string name="server_configs">Server Configs</string>
+    <string name="no_configs">No servers configured</string>
+    <string name="status_trying_config">Trying config %1$d/%2$d…</string>
+    <string name="content_desc_remove_config">Remove config</string>
 </resources>

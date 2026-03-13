@@ -1,21 +1,27 @@
 package ir.phonx;
 
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 
-public class SettingsActivity extends AppCompatActivity {
+import java.util.List;
+
+public class SettingsActivity extends AppCompatActivity implements ConfigAdapter.Listener {
 
     private EditText etServerUri;
-    private TextView tvCurrentServer;
+    private RecyclerView rvConfigs;
+    private TextView tvEmptyConfigs;
+    private ConfigAdapter configAdapter;
     private MaterialSwitch switchPsiphon;
+    private MaterialSwitch switchTryAll;
     private ConfigStorage configStorage;
 
     @Override
@@ -27,32 +33,50 @@ public class SettingsActivity extends AppCompatActivity {
         configStorage = new ConfigStorage(this);
 
         etServerUri = findViewById(R.id.etServerUri);
-        tvCurrentServer = findViewById(R.id.tvCurrentServer);
+        rvConfigs = findViewById(R.id.rvConfigs);
+        tvEmptyConfigs = findViewById(R.id.tvEmptyConfigs);
         switchPsiphon = findViewById(R.id.switchPsiphon);
-        Button btnSave = findViewById(R.id.btnSave);
+        switchTryAll = findViewById(R.id.switchTryAll);
+        View btnSave = findViewById(R.id.btnSave);
         View btnBack = findViewById(R.id.btnBack);
 
-        loadCurrentConfig();
+        // Config list
+        rvConfigs.setLayoutManager(new LinearLayoutManager(this));
+        configAdapter = new ConfigAdapter();
+        configAdapter.setListener(this);
+        rvConfigs.setAdapter(configAdapter);
+
+        loadConfigList();
 
         // Psiphon toggle
         switchPsiphon.setChecked(configStorage.isPsiphonEnabled());
         switchPsiphon.setOnCheckedChangeListener((buttonView, isChecked) ->
                 configStorage.setPsiphonEnabled(isChecked));
 
-        btnSave.setOnClickListener(v -> saveConfig());
+        // Try-all toggle
+        switchTryAll.setChecked(configStorage.isTryAllEnabled());
+        switchTryAll.setOnCheckedChangeListener((buttonView, isChecked) ->
+                configStorage.setTryAllEnabled(isChecked));
+
+        btnSave.setOnClickListener(v -> addConfig());
         btnBack.setOnClickListener(v -> finish());
     }
 
-    private void loadCurrentConfig() {
-        String uri = configStorage.loadUri();
-        if (uri != null && !uri.isEmpty()) {
-            tvCurrentServer.setText(uri);
+    private void loadConfigList() {
+        List<ConfigEntry> configs = configStorage.loadConfigs();
+        String activeId = configStorage.getActiveConfigId();
+        configAdapter.setConfigs(configs, activeId);
+
+        if (configs.isEmpty()) {
+            tvEmptyConfigs.setVisibility(View.VISIBLE);
+            rvConfigs.setVisibility(View.GONE);
         } else {
-            tvCurrentServer.setText(R.string.no_server);
+            tvEmptyConfigs.setVisibility(View.GONE);
+            rvConfigs.setVisibility(View.VISIBLE);
         }
     }
 
-    private void saveConfig() {
+    private void addConfig() {
         String input = etServerUri.getText().toString().trim();
 
         if (input.isEmpty()) {
@@ -60,18 +84,29 @@ public class SettingsActivity extends AppCompatActivity {
             return;
         }
 
-        // Validate the URI before saving
         try {
-            ConfigParser.ProxyConfig config = ConfigParser.parse(input);
-            configStorage.saveUri(input);
-            Toast.makeText(this, R.string.config_saved_toast, Toast.LENGTH_SHORT).show();
-            tvCurrentServer.setText(input);
+            ConfigEntry entry = ConfigEntry.fromUri(input);
+            configStorage.addConfig(entry);
             etServerUri.setText("");
-            finish();
+            loadConfigList();
+            Toast.makeText(this, R.string.config_added_toast, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Toast.makeText(this,
                     getString(R.string.invalid_uri_toast, e.getMessage()),
                     Toast.LENGTH_LONG).show();
         }
+    }
+
+    @Override
+    public void onConfigSelected(ConfigEntry entry) {
+        configStorage.setActiveConfigId(entry.id);
+        loadConfigList();
+    }
+
+    @Override
+    public void onConfigRemoved(ConfigEntry entry) {
+        configStorage.removeConfig(entry.id);
+        loadConfigList();
+        Toast.makeText(this, R.string.config_removed_toast, Toast.LENGTH_SHORT).show();
     }
 }

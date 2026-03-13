@@ -23,6 +23,9 @@ import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 @RunWith(PhonXTestRunner.class)
@@ -37,8 +40,8 @@ public class PhonXVpnServiceTest {
         ShadowPhonxcore.reset();
         controller = Robolectric.buildService(PhonXVpnService.class);
         service = controller.create().get();
-        // Clear any saved config
-        new ConfigStorage(service).clear();
+        // Clear prefs directly
+        service.getSharedPreferences("phonx_prefs", Context.MODE_PRIVATE).edit().clear().commit();
     }
 
     @After
@@ -217,7 +220,6 @@ public class PhonXVpnServiceTest {
         Intent start = new Intent(PhonXVpnService.ACTION_START);
         service.onStartCommand(start, 0, 1);
 
-        // Wait for background thread
         Thread.sleep(500);
         ShadowLooper.idleMainLooper();
 
@@ -234,17 +236,14 @@ public class PhonXVpnServiceTest {
         Intent start = new Intent(PhonXVpnService.ACTION_START);
         service.onStartCommand(start, 0, 1);
 
-        // Wait for background thread
         Thread.sleep(500);
         ShadowLooper.idleMainLooper();
 
-        // Psiphon should not have been started
         assertFalse(ShadowGoPsiphonController.startCalled);
     }
 
     @Test
     public void stopVpn_stopsXrayThenPsiphon() throws InterruptedException {
-        // Start first (will fail at TUN but controllers get created in onCreate)
         ConfigStorage storage = new ConfigStorage(service);
         storage.saveUri("vless://test-uuid@example.com:443?security=tls&type=ws");
 
@@ -252,13 +251,162 @@ public class PhonXVpnServiceTest {
         service.onStartCommand(start, 0, 1);
         Thread.sleep(300);
 
-        // Now stop
         Intent stop = new Intent(PhonXVpnService.ACTION_STOP);
         service.onStartCommand(stop, 0, 1);
         ShadowLooper.idleMainLooper();
+    }
 
-        // Both should have stop called (stopVpn calls both)
-        // Note: the order (Xray first, then Psiphon) is verified by code review
-        // since both stop() methods are called regardless
+    // ── Multi-config fallback tests ──────────────────────────────────────────
+    // Note: In Robolectric, VpnService.Builder.establish() returns null,
+    // so each config attempt fails at TUN creation (not at Xray).
+    // We verify broadcast behavior and config list logic here.
+
+    private void addConfigs(ConfigStorage storage, int count) throws Exception {
+        for (int i = 0; i < count; i++) {
+            ConfigEntry entry = ConfigEntry.fromUri(
+                "vless://uuid" + i + "@host" + i + ".com:443?security=none&type=tcp");
+            storage.addConfig(entry);
+        }
+    }
+
+    @Test
+    public void startVpn_tryAllOff_singleConfigFails_broadcastsError() throws Exception {
+        ConfigStorage storage = new ConfigStorage(service);
+        addConfigs(storage, 2);
+        storage.setTryAllEnabled(false);
+        storage.setPsiphonEnabled(false);
+
+        boolean[] errorReceived = {false};
+        boolean[] tryingNextReceived = {false};
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(service);
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ctx, Intent intent) {
+                String status = intent.getStringExtra(MainActivity.EXTRA_STATUS);
+                if (MainActivity.STATUS_ERROR.equals(status)) errorReceived[0] = true;
+                if (MainActivity.STATUS_TRYING_NEXT.equals(status)) tryingNextReceived[0] = true;
+            }
+        };
+        lbm.registerReceiver(receiver, new IntentFilter(MainActivity.ACTION_VPN_STATUS));
+
+        Intent start = new Intent(PhonXVpnService.ACTION_START);
+        service.onStartCommand(start, 0, 1);
+        Thread.sleep(1000);
+        ShadowLooper.idleMainLooper();
+
+        lbm.unregisterReceiver(receiver);
+        assertTrue("Should broadcast error when tryAll is off", errorReceived[0]);
+        assertFalse("Should NOT broadcast trying_next with tryAll off", tryingNextReceived[0]);
+    }
+
+    @Test
+    public void startVpn_tryAllOn_broadcastsTryingNext() throws Exception {
+        ConfigStorage storage = new ConfigStorage(service);
+        addConfigs(storage, 2);
+        storage.setTryAllEnabled(true);
+        storage.setPsiphonEnabled(false);
+
+        // In Robolectric, all attempts fail at TUN creation.
+        // The fallback loop should still broadcast STATUS_TRYING_NEXT for attempt 2.
+        List<String> receivedStatuses = new ArrayList<>();
+        int[] tryingAttempt = {0};
+        int[] tryingTotal = {0};
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(service);
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ctx, Intent intent) {
+                String status = intent.getStringExtra(MainActivity.EXTRA_STATUS);
+                receivedStatuses.add(status);
+                if (MainActivity.STATUS_TRYING_NEXT.equals(status)) {
+                    tryingAttempt[0] = intent.getIntExtra("attempt", 0);
+                    tryingTotal[0] = intent.getIntExtra("total", 0);
+                }
+            }
+        };
+        lbm.registerReceiver(receiver, new IntentFilter(MainActivity.ACTION_VPN_STATUS));
+
+        Intent start = new Intent(PhonXVpnService.ACTION_START);
+        service.onStartCommand(start, 0, 1);
+        Thread.sleep(2500);
+        ShadowLooper.idleMainLooper();
+
+        lbm.unregisterReceiver(receiver);
+        assertTrue("Should broadcast STATUS_TRYING_NEXT",
+                receivedStatuses.contains(MainActivity.STATUS_TRYING_NEXT));
+        assertEquals(2, tryingAttempt[0]);
+        assertEquals(2, tryingTotal[0]);
+        // Should also eventually get error since all TUN creations fail
+        assertTrue("Should broadcast STATUS_ERROR after all fail",
+                receivedStatuses.contains(MainActivity.STATUS_ERROR));
+    }
+
+    @Test
+    public void startVpn_tryAllOn_allFail_broadcastsError() throws Exception {
+        ConfigStorage storage = new ConfigStorage(service);
+        addConfigs(storage, 3);
+        storage.setTryAllEnabled(true);
+        storage.setPsiphonEnabled(false);
+
+        boolean[] errorReceived = {false};
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(service);
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ctx, Intent intent) {
+                if (MainActivity.STATUS_ERROR.equals(
+                        intent.getStringExtra(MainActivity.EXTRA_STATUS))) {
+                    errorReceived[0] = true;
+                }
+            }
+        };
+        lbm.registerReceiver(receiver, new IntentFilter(MainActivity.ACTION_VPN_STATUS));
+
+        Intent start = new Intent(PhonXVpnService.ACTION_START);
+        service.onStartCommand(start, 0, 1);
+        Thread.sleep(4000); // 3 configs × ~1s retry delay
+        ShadowLooper.idleMainLooper();
+
+        lbm.unregisterReceiver(receiver);
+        assertTrue("Should broadcast error when all configs fail", errorReceived[0]);
+    }
+
+    @Test
+    public void startVpn_noConfigs_broadcastsError() throws Exception {
+        ConfigStorage storage = new ConfigStorage(service);
+        storage.setTryAllEnabled(true);
+        storage.setPsiphonEnabled(false);
+
+        boolean[] errorReceived = {false};
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(service);
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ctx, Intent intent) {
+                if (MainActivity.STATUS_ERROR.equals(
+                        intent.getStringExtra(MainActivity.EXTRA_STATUS))) {
+                    errorReceived[0] = true;
+                }
+            }
+        };
+        lbm.registerReceiver(receiver, new IntentFilter(MainActivity.ACTION_VPN_STATUS));
+
+        Intent start = new Intent(PhonXVpnService.ACTION_START);
+        service.onStartCommand(start, 0, 1);
+        Thread.sleep(500);
+        ShadowLooper.idleMainLooper();
+
+        lbm.unregisterReceiver(receiver);
+        assertTrue("Should broadcast error with empty config list", errorReceived[0]);
+    }
+
+    @Test
+    public void startVpn_psiphonStartedOnce_acrossRetries() throws Exception {
+        ConfigStorage storage = new ConfigStorage(service);
+        addConfigs(storage, 2);
+        storage.setTryAllEnabled(true);
+        storage.setPsiphonEnabled(true);
+
+        Intent start = new Intent(PhonXVpnService.ACTION_START);
+        service.onStartCommand(start, 0, 1);
+        Thread.sleep(3000);
+        ShadowLooper.idleMainLooper();
+
+        // Psiphon should be started exactly once, even though both configs are tried
+        assertEquals("Psiphon should only be started once across retries",
+                1, ShadowGoPsiphonController.startCallCount);
     }
 }

@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String STATUS_CONNECTING_PSIPHON = "connecting_psiphon";
     public static final String STATUS_CONNECTED = "connected";
     public static final String STATUS_ERROR = "error";
+    public static final String STATUS_TRYING_NEXT = "trying_next";
 
     private enum State { DISCONNECTED, CONNECTING, CONNECTED }
 
@@ -67,6 +68,12 @@ public class MainActivity extends AppCompatActivity {
                 case STATUS_CONNECTING:
                 case STATUS_CONNECTING_PSIPHON:
                     setState(State.CONNECTING);
+                    break;
+                case STATUS_TRYING_NEXT:
+                    setState(State.CONNECTING);
+                    int attempt = intent.getIntExtra("attempt", 0);
+                    int total = intent.getIntExtra("total", 0);
+                    tvStatus.setText(getString(R.string.status_trying_config, attempt, total));
                     break;
                 case STATUS_DISCONNECTED:
                     setState(State.DISCONNECTED);

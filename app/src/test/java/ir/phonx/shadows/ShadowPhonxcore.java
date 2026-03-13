@@ -6,6 +6,7 @@ import phonxcore.Phonxcore;
 
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadow.api.Shadow;
 
 /**
  * Robolectric shadow for phonxcore.Phonxcore (gomobile-generated static utility class).
@@ -51,15 +52,15 @@ public class ShadowPhonxcore {
             handler.startup();
             handler.onEmitStatus(0L, "test status");
         }
-        // ShadowGoXrayController.__constructor__ intercepts this
-        return new phonxcore.XrayController();
+        // Use Shadow.newInstanceOf to bypass native constructor
+        return Shadow.newInstanceOf(phonxcore.XrayController.class);
     }
 
     @Implementation
     public static phonxcore.PsiphonController newPsiphonController(PsiphonCallbackHandler handler) {
         capturedPsiphonHandler = handler;
-        // ShadowGoPsiphonController.__constructor__ intercepts this
-        return new phonxcore.PsiphonController();
+        // Use Shadow.newInstanceOf to bypass native constructor
+        return Shadow.newInstanceOf(phonxcore.PsiphonController.class);
     }
 
     @Implementation

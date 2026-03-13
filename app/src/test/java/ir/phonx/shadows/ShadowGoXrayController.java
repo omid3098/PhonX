@@ -1,5 +1,7 @@
 package ir.phonx.shadows;
 
+import phonxcore.CoreCallbackHandler;
+
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 
@@ -23,6 +25,11 @@ public class ShadowGoXrayController {
     public static int lastTunFd = -1;
     public static boolean startLoopCalled = false;
     public static boolean stopLoopCalled = false;
+    public static int startLoopCallCount = 0;
+
+    // Failure simulation: failOnCallNumbers contains 1-based call numbers that should fail
+    public static java.util.Set<Integer> failOnCallNumbers = new java.util.HashSet<>();
+    public static String simulateFailureMessage = "Simulated Xray failure";
 
     private boolean running = false;
 
@@ -31,11 +38,14 @@ public class ShadowGoXrayController {
         lastTunFd = -1;
         startLoopCalled = false;
         stopLoopCalled = false;
+        startLoopCallCount = 0;
+        failOnCallNumbers.clear();
+        simulateFailureMessage = "Simulated Xray failure";
     }
 
-    /** Intercepts default constructor — prevents native init. */
+    /** Intercepts constructor — prevents native init. */
     @Implementation
-    protected void __constructor__() {
+    protected void __constructor__(CoreCallbackHandler handler) {
         // no-op
     }
 
@@ -44,6 +54,12 @@ public class ShadowGoXrayController {
         lastConfigJson = configJson;
         lastTunFd = tunFd;
         startLoopCalled = true;
+        startLoopCallCount++;
+
+        if (failOnCallNumbers.contains(startLoopCallCount)) {
+            throw new Exception(simulateFailureMessage + " (call #" + startLoopCallCount + ")");
+        }
+
         running = true;
     }
 

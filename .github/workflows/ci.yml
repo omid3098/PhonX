@@ -41,10 +41,6 @@ jobs:
       - name: Set ANDROID_NDK_HOME
         run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
-      - name: Vendor Go modules
-        working-directory: phonxcore
-        run: GOOS=android go mod vendor
-
       - name: Build AAR
         working-directory: phonxcore
         run: |
@@ -65,9 +61,13 @@ jobs:
           find "$WORK/src/gobind" -maxdepth 1 -type f \( -name '*.go' -o -name '*.c' -o -name '*.h' \) \
             -exec cp {} cmd/gobind/ \;
 
-          # 3. Cross-compile .so for each architecture
+          # 3. Vendor now (after gobind code exists, so bind/java import is seen)
+          echo "==> Step 3: Vendoring..."
+          GOOS=android go mod vendor
+
+          # 4. Cross-compile .so for each architecture
           for arch in arm arm64; do
-            echo "==> Step 3: Building android/$arch..."
+            echo "==> Step 4: Building android/$arch..."
             case "$arch" in
               arm)
                 CC="$NDK_TC/armv7a-linux-androideabi24-clang"
@@ -86,8 +86,8 @@ jobs:
                 -o "$WORK/aar/jni/$JNI/libgojni.so" ./cmd/gobind
           done
 
-          # 4. Package AAR
-          echo "==> Step 4: Packaging AAR..."
+          # 5. Package AAR
+          echo "==> Step 5: Packaging AAR..."
           cat > "$WORK/aar/AndroidManifest.xml" <<'XML'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="go"/>
           XML

@@ -16,10 +16,9 @@ android {
     }
 
     signingConfigs {
-        release {
-            def ksPath = System.getenv("KEYSTORE_PATH")
-            if (ksPath != null && file(ksPath).exists()) {
-                storeFile file(ksPath)
+        if (System.getenv("KEYSTORE_PATH") != null) {
+            release {
+                storeFile file(System.getenv("KEYSTORE_PATH"))
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
                 keyAlias System.getenv("KEY_ALIAS") ?: ""
                 keyPassword System.getenv("KEY_PASSWORD") ?: ""
@@ -32,8 +31,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            def ksPath = System.getenv("KEYSTORE_PATH")
-            if (ksPath != null && file(ksPath).exists()) {
+            if (System.getenv("KEYSTORE_PATH") != null) {
                 signingConfig signingConfigs.release
             }
         }

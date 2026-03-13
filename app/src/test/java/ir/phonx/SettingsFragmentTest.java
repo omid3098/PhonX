@@ -8,27 +8,33 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
 import static org.junit.Assert.*;
 
 @RunWith(PhonXTestRunner.class)
-public class SettingsActivityTest {
+public class SettingsFragmentTest {
 
-    private ActivityScenario<SettingsActivity> scenario;
+    private ActivityScenario<MainActivity> scenario;
 
     @Before
     public void setUp() {
-        // Clear prefs directly
         Context ctx = ApplicationProvider.getApplicationContext();
         ctx.getSharedPreferences("phonx_prefs", Context.MODE_PRIVATE).edit().clear().commit();
-        scenario = ActivityScenario.launch(SettingsActivity.class);
+        scenario = ActivityScenario.launch(MainActivity.class);
+        // Switch to settings tab
+        scenario.onActivity(activity -> {
+            activity.getBottomNav().setSelectedItemId(R.id.nav_settings);
+        });
+        ShadowLooper.idleMainLooper();
     }
 
     @After
@@ -92,7 +98,6 @@ public class SettingsActivityTest {
             assertNotNull(toast);
             assertTrue("Toast should start with 'Invalid address:'",
                     toast.startsWith("Invalid address:"));
-            // Nothing added
             RecyclerView rv = activity.findViewById(R.id.rvConfigs);
             assertEquals(0, rv.getAdapter().getItemCount());
         });
@@ -120,22 +125,11 @@ public class SettingsActivityTest {
     }
 
     @Test
-    public void addConfig_doesNotFinishActivity() {
-        scenario.onActivity(activity -> {
-            EditText et = activity.findViewById(R.id.etServerUri);
-            et.setText("vless://test-uuid@example.com:443?security=tls&type=ws");
-            activity.findViewById(R.id.btnSave).performClick();
-            assertFalse(activity.isFinishing());
-        });
-    }
-
-    @Test
     public void firstConfigAdded_autoSelectedAsActive() {
         scenario.onActivity(activity -> {
             EditText et = activity.findViewById(R.id.etServerUri);
             et.setText("vless://test-uuid@example.com:443?security=tls&type=ws");
             activity.findViewById(R.id.btnSave).performClick();
-            // Active config should be set
             ConfigStorage storage = new ConfigStorage(activity);
             assertNotNull(storage.getActiveConfig());
         });
@@ -146,14 +140,12 @@ public class SettingsActivityTest {
     @Test
     public void removeConfig_removesFromList() {
         scenario.onActivity(activity -> {
-            // Add 2 configs
             EditText et = activity.findViewById(R.id.etServerUri);
             et.setText("vless://a@h1:443?security=none&type=tcp");
             activity.findViewById(R.id.btnSave).performClick();
             et.setText("vless://b@h2:443?security=none&type=tcp");
             activity.findViewById(R.id.btnSave).performClick();
 
-            // Remove via storage (simulating adapter callback)
             ConfigStorage storage = new ConfigStorage(activity);
             java.util.List<ConfigEntry> configs = storage.loadConfigs();
             assertEquals(2, configs.size());
@@ -168,7 +160,6 @@ public class SettingsActivityTest {
     @Test
     public void selectConfig_changesActiveInStorage() {
         scenario.onActivity(activity -> {
-            // Add 2 configs
             EditText et = activity.findViewById(R.id.etServerUri);
             et.setText("vless://a@h1:443?security=none&type=tcp");
             activity.findViewById(R.id.btnSave).performClick();
@@ -177,7 +168,6 @@ public class SettingsActivityTest {
 
             ConfigStorage storage = new ConfigStorage(activity);
             java.util.List<ConfigEntry> configs = storage.loadConfigs();
-            // First is active by default; set second
             storage.setActiveConfigId(configs.get(1).id);
             assertEquals(configs.get(1).id, storage.getActiveConfigId());
         });
@@ -204,7 +194,7 @@ public class SettingsActivityTest {
         });
     }
 
-    // ── Psiphon toggle (unchanged) ────────────────────────────────────────────
+    // ── Psiphon toggle ────────────────────────────────────────────────────────
 
     @Test
     public void psiphonSwitch_defaultChecked() {
@@ -222,16 +212,6 @@ public class SettingsActivityTest {
             assertFalse(new ConfigStorage(activity).isPsiphonEnabled());
             sw.setChecked(true);
             assertTrue(new ConfigStorage(activity).isPsiphonEnabled());
-        });
-    }
-
-    // ── Back button ───────────────────────────────────────────────────────────
-
-    @Test
-    public void backButton_finishesActivity() {
-        scenario.onActivity(activity -> {
-            activity.findViewById(R.id.btnBack).performClick();
-            assertTrue(activity.isFinishing());
         });
     }
 }

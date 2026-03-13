@@ -28,11 +28,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
         <service
             android:name=".PhonXVpnService"
             android:exported="false"

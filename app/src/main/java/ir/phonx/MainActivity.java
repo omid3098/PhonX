@@ -9,16 +9,16 @@ import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Button;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,14 +35,24 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_IP = "ip_address";
     public static final String EXTRA_COUNTRY = "ip_country";
 
-    private enum State { DISCONNECTED, CONNECTING, CONNECTED }
+    public enum State { DISCONNECTED, CONNECTING, CONNECTED }
+
+    public interface VpnStateListener {
+        void onStateChanged(State state, String ip, String country);
+        void onStatusText(String text);
+        void onError(String message);
+    }
 
     private State currentState = State.DISCONNECTED;
-
-    private Button btnConnect;
-    private TextView tvStatus;
-    private TextView tvIpAddress;
+    private String lastIp;
+    private String lastCountry;
+    private VpnStateListener stateListener;
     private ConfigStorage configStorage;
+
+    private BottomNavigationView bottomNav;
+    private Fragment homeFragment;
+    private Fragment settingsFragment;
+    private Fragment activeFragment;
 
     private final ActivityResultLauncher<Intent> vpnPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -67,17 +77,11 @@ public class MainActivity extends AppCompatActivity {
             if (status == null) return;
             switch (status) {
                 case STATUS_CONNECTED:
-                    setState(State.CONNECTED);
                     String ip = intent.getStringExtra(EXTRA_IP);
-                    if (ip != null && tvIpAddress != null) {
-                        String country = intent.getStringExtra(EXTRA_COUNTRY);
-                        if (country != null && !country.isEmpty()) {
-                            tvIpAddress.setText(getString(R.string.ip_label_with_country, ip, country));
-                        } else {
-                            tvIpAddress.setText(getString(R.string.ip_label, ip));
-                        }
-                        tvIpAddress.setVisibility(View.VISIBLE);
-                    }
+                    String country = intent.getStringExtra(EXTRA_COUNTRY);
+                    lastIp = ip;
+                    lastCountry = country;
+                    setState(State.CONNECTED);
                     break;
                 case STATUS_CONNECTING:
                 case STATUS_CONNECTING_PSIPHON:
@@ -85,22 +89,33 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case STATUS_VERIFYING:
                     setState(State.CONNECTING);
-                    tvStatus.setText(R.string.status_verifying);
+                    if (stateListener != null) {
+                        stateListener.onStatusText(getString(R.string.status_verifying));
+                    }
                     break;
                 case STATUS_TRYING_NEXT:
                     setState(State.CONNECTING);
                     int attempt = intent.getIntExtra("attempt", 0);
                     int total = intent.getIntExtra("total", 0);
-                    tvStatus.setText(getString(R.string.status_trying_config, attempt, total));
+                    if (stateListener != null) {
+                        stateListener.onStatusText(getString(R.string.status_trying_config, attempt, total));
+                    }
                     break;
                 case STATUS_DISCONNECTED:
+                    lastIp = null;
+                    lastCountry = null;
                     setState(State.DISCONNECTED);
                     break;
                 case STATUS_ERROR:
+                    lastIp = null;
+                    lastCountry = null;
                     setState(State.DISCONNECTED);
                     String msg = intent.getStringExtra("message");
                     if (msg != null) {
                         Toast.makeText(MainActivity.this, getString(R.string.error_prefix, msg), Toast.LENGTH_LONG).show();
+                        if (stateListener != null) {
+                            stateListener.onError(msg);
+                        }
                     }
                     break;
             }
@@ -113,17 +128,41 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         configStorage = new ConfigStorage(this);
+        bottomNav = findViewById(R.id.bottomNav);
 
-        btnConnect = findViewById(R.id.btnConnect);
-        tvStatus = findViewById(R.id.tvStatus);
-        tvIpAddress = findViewById(R.id.tvIpAddress);
-        View btnSettings = findViewById(R.id.btnSettings);
+        if (savedInstanceState == null) {
+            homeFragment = new HomeFragment();
+            settingsFragment = new SettingsFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragmentContainer, settingsFragment, "settings")
+                    .hide(settingsFragment)
+                    .add(R.id.fragmentContainer, homeFragment, "home")
+                    .commit();
+            activeFragment = homeFragment;
+        } else {
+            homeFragment = getSupportFragmentManager().findFragmentByTag("home");
+            settingsFragment = getSupportFragmentManager().findFragmentByTag("settings");
+            activeFragment = homeFragment;
+        }
 
-        btnConnect.setOnClickListener(v -> onConnectClicked());
-        btnSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, SettingsActivity.class)));
-
-        setState(State.DISCONNECTED);
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment target;
+            if (item.getItemId() == R.id.nav_home) {
+                target = homeFragment;
+            } else if (item.getItemId() == R.id.nav_settings) {
+                target = settingsFragment;
+            } else {
+                return false;
+            }
+            if (target != activeFragment) {
+                getSupportFragmentManager().beginTransaction()
+                        .hide(activeFragment)
+                        .show(target)
+                        .commit();
+                activeFragment = target;
+            }
+            return true;
+        });
     }
 
     @Override
@@ -139,7 +178,8 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(statusReceiver);
     }
 
-    private void onConnectClicked() {
+    // Called by HomeFragment
+    void onConnectClicked() {
         if (currentState == State.CONNECTED || currentState == State.CONNECTING) {
             stopVpnService();
             return;
@@ -147,14 +187,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (!configStorage.hasConfig()) {
             Toast.makeText(this, R.string.no_config_toast, Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, SettingsActivity.class));
+            bottomNav.setSelectedItemId(R.id.nav_settings);
             return;
         }
 
         setState(State.CONNECTING);
 
-        // On Android 13+, request notification permission so the VPN notification
-        // is visible in the status bar and notification shade.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                    != PackageManager.PERMISSION_GRANTED) {
@@ -188,32 +226,39 @@ public class MainActivity extends AppCompatActivity {
 
     private void setState(State state) {
         currentState = state;
-        switch (state) {
-            case DISCONNECTED:
-                btnConnect.setBackgroundResource(R.drawable.btn_connect_disconnected);
-                btnConnect.setText(R.string.connect);
-                tvStatus.setText(R.string.status_disconnected);
-                tvStatus.setTextColor(getResources().getColor(R.color.btn_disconnected, null));
-                if (tvIpAddress != null) {
-                    tvIpAddress.setText("");
-                    tvIpAddress.setVisibility(View.GONE);
-                }
-                break;
-            case CONNECTING:
-                btnConnect.setBackgroundResource(R.drawable.btn_connect_connecting);
-                btnConnect.setText(R.string.disconnect);
-                tvStatus.setText(R.string.status_connecting);
-                tvStatus.setTextColor(getResources().getColor(R.color.btn_connecting, null));
-                if (tvIpAddress != null) {
-                    tvIpAddress.setVisibility(View.GONE);
-                }
-                break;
-            case CONNECTED:
-                btnConnect.setBackgroundResource(R.drawable.btn_connect_connected);
-                btnConnect.setText(R.string.disconnect);
-                tvStatus.setText(R.string.status_connected);
-                tvStatus.setTextColor(getResources().getColor(R.color.btn_connected, null));
-                break;
+        if (stateListener != null) {
+            stateListener.onStateChanged(state, lastIp, lastCountry);
         }
+    }
+
+    // Fragment access methods
+
+    State getCurrentState() {
+        return currentState;
+    }
+
+    String getLastIp() {
+        return lastIp;
+    }
+
+    String getLastCountry() {
+        return lastCountry;
+    }
+
+    void registerStateListener(VpnStateListener listener) {
+        this.stateListener = listener;
+        // Deliver current state immediately
+        listener.onStateChanged(currentState, lastIp, lastCountry);
+    }
+
+    void unregisterStateListener(VpnStateListener listener) {
+        if (this.stateListener == listener) {
+            this.stateListener = null;
+        }
+    }
+
+    // For test access
+    BottomNavigationView getBottomNav() {
+        return bottomNav;
     }
 }

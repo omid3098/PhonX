@@ -20,4 +20,5 @@
     <color name="md_on_surface_variant">#AAAAAA</color>
     <color name="md_outline">#444444</color>
     <color name="md_outline_variant">#333333</color>
+    <color name="bottom_nav_bg">#12122A</color>
 </resources>

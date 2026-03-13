@@ -1,12 +1,16 @@
 package ir.phonx;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -14,7 +18,7 @@ import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.util.List;
 
-public class SettingsActivity extends AppCompatActivity implements ConfigAdapter.Listener {
+public class SettingsFragment extends Fragment implements ConfigAdapter.Listener {
 
     private EditText etServerUri;
     private RecyclerView rvConfigs;
@@ -24,24 +28,28 @@ public class SettingsActivity extends AppCompatActivity implements ConfigAdapter
     private MaterialSwitch switchTryAll;
     private ConfigStorage configStorage;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setTheme(R.style.SettingsTheme);
-        setContentView(R.layout.activity_settings);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_settings, container, false);
+    }
 
-        configStorage = new ConfigStorage(this);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        etServerUri = findViewById(R.id.etServerUri);
-        rvConfigs = findViewById(R.id.rvConfigs);
-        tvEmptyConfigs = findViewById(R.id.tvEmptyConfigs);
-        switchPsiphon = findViewById(R.id.switchPsiphon);
-        switchTryAll = findViewById(R.id.switchTryAll);
-        View btnSave = findViewById(R.id.btnSave);
-        View btnBack = findViewById(R.id.btnBack);
+        configStorage = new ConfigStorage(requireContext());
+
+        etServerUri = view.findViewById(R.id.etServerUri);
+        rvConfigs = view.findViewById(R.id.rvConfigs);
+        tvEmptyConfigs = view.findViewById(R.id.tvEmptyConfigs);
+        switchPsiphon = view.findViewById(R.id.switchPsiphon);
+        switchTryAll = view.findViewById(R.id.switchTryAll);
+        View btnSave = view.findViewById(R.id.btnSave);
 
         // Config list
-        rvConfigs.setLayoutManager(new LinearLayoutManager(this));
+        rvConfigs.setLayoutManager(new LinearLayoutManager(requireContext()));
         configAdapter = new ConfigAdapter();
         configAdapter.setListener(this);
         rvConfigs.setAdapter(configAdapter);
@@ -59,7 +67,6 @@ public class SettingsActivity extends AppCompatActivity implements ConfigAdapter
                 configStorage.setTryAllEnabled(isChecked));
 
         btnSave.setOnClickListener(v -> addConfig());
-        btnBack.setOnClickListener(v -> finish());
     }
 
     private void loadConfigList() {
@@ -80,7 +87,7 @@ public class SettingsActivity extends AppCompatActivity implements ConfigAdapter
         String input = etServerUri.getText().toString().trim();
 
         if (input.isEmpty()) {
-            Toast.makeText(this, getString(R.string.empty_uri_toast), Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), getString(R.string.empty_uri_toast), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -89,9 +96,9 @@ public class SettingsActivity extends AppCompatActivity implements ConfigAdapter
             configStorage.addConfig(entry);
             etServerUri.setText("");
             loadConfigList();
-            Toast.makeText(this, R.string.config_added_toast, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.config_added_toast, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            Toast.makeText(this,
+            Toast.makeText(requireContext(),
                     getString(R.string.invalid_uri_toast, e.getMessage()),
                     Toast.LENGTH_LONG).show();
         }
@@ -107,6 +114,6 @@ public class SettingsActivity extends AppCompatActivity implements ConfigAdapter
     public void onConfigRemoved(ConfigEntry entry) {
         configStorage.removeConfig(entry.id);
         loadConfigList();
-        Toast.makeText(this, R.string.config_removed_toast, Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), R.string.config_removed_toast, Toast.LENGTH_SHORT).show();
     }
 }

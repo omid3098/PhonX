@@ -9,12 +9,13 @@ import androidx.lifecycle.Lifecycle;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.test.core.app.ActivityScenario;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Shadows;
-import org.robolectric.shadows.ShadowApplication;
 import org.robolectric.shadows.ShadowLooper;
 
 import static org.junit.Assert.*;
@@ -147,17 +148,14 @@ public class MainActivityTest {
     }
 
     @Test
-    public void click_whenDisconnected_noConfig_opensSettingsActivity() {
+    public void click_whenDisconnected_noConfig_switchesToSettingsTab() {
         scenario.onActivity(activity -> {
-            // No config saved (setUp cleared it)
             new ConfigStorage(activity).clear();
             Button btn = activity.findViewById(R.id.btnConnect);
             btn.performClick();
-            // Should start SettingsActivity (not a service)
-            Intent nextActivity = Shadows.shadowOf(activity).getNextStartedActivity();
-            assertNotNull(nextActivity);
-            assertEquals(SettingsActivity.class.getName(),
-                    nextActivity.getComponent().getClassName());
+            ShadowLooper.idleMainLooper();
+            BottomNavigationView nav = activity.getBottomNav();
+            assertEquals(R.id.nav_settings, nav.getSelectedItemId());
         });
     }
 
@@ -167,10 +165,7 @@ public class MainActivityTest {
             new ConfigStorage(activity).saveUri("vless://uuid@host.com:443");
             Button btn = activity.findViewById(R.id.btnConnect);
             btn.performClick();
-            // VpnService.prepare() returns null in Robolectric → startVpnService() is called
-            // State was set to CONNECTING before launching VPN
             TextView tvStatus = activity.findViewById(R.id.tvStatus);
-            // Either CONNECTING status or the service was started
             String text = tvStatus.getText().toString();
             boolean isConnecting = activity.getString(R.string.status_connecting).equals(text);
             Intent svcIntent = Shadows.shadowOf(activity.getApplication()).peekNextStartedService();
@@ -181,13 +176,10 @@ public class MainActivityTest {
     }
 
     @Test
-    public void settingsButton_opensSettingsActivity() {
+    public void bottomNav_defaultsToHomeTab() {
         scenario.onActivity(activity -> {
-            activity.findViewById(R.id.btnSettings).performClick();
-            Intent nextActivity = Shadows.shadowOf(activity).getNextStartedActivity();
-            assertNotNull(nextActivity);
-            assertEquals(SettingsActivity.class.getName(),
-                    nextActivity.getComponent().getClassName());
+            BottomNavigationView nav = activity.getBottomNav();
+            assertEquals(R.id.nav_home, nav.getSelectedItemId());
         });
     }
 
@@ -225,7 +217,6 @@ public class MainActivityTest {
     @Test
     public void click_whenDisconnected_withConfigs_becomesConnecting() {
         scenario.onActivity(activity -> {
-            // Use multi-config API
             try {
                 ConfigStorage storage = new ConfigStorage(activity);
                 storage.addConfig(ConfigEntry.fromUri("vless://uuid@host.com:443?security=none&type=tcp"));

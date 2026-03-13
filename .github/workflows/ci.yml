@@ -137,16 +137,14 @@ jobs:
           name: phonxcore-aar
           path: app/libs
 
-      - name: Prepare build
-        run: |
-          ls -lh app/libs/phonxcore.aar
-          chmod +x gradlew
+      - name: Verify AAR is in place
+        run: ls -lh app/libs/phonxcore.aar
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest jacocoTestReport --no-daemon
+        run: gradle testDebugUnitTest jacocoTestReport --no-daemon
 
       - name: Upload test results
         if: always()
@@ -160,7 +158,7 @@ jobs:
           retention-days: 7
 
       - name: Build debug APKs
-        run: ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4

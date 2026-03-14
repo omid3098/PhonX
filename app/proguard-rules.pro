@@ -2,6 +2,9 @@
 -keep class phonxcore.** { *; }
 -dontwarn phonxcore.**
 
+# Keep Go mobile runtime (go.Seq, go.Universe — used by JNI in libgojni.so)
+-keep class go.** { *; }
+
 # Keep our app classes
 -keep class ir.phonx.** { *; }
 

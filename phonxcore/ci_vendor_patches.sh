@@ -71,5 +71,8 @@ awk '
 # Go 1.25 also replaced the private testingOnlyCurveID field (CurveID is now public)
 # with testingOnlyPeerSignatureAlgorithm.
 sed -i 's/testingOnlyCurveID CurveID/testingOnlyPeerSignatureAlgorithm SignatureScheme/' "$PSIPHON_TLS_COMMON"
+# Update usage in conn.go: state.testingOnlyCurveID → state.CurveID (now a public field)
+PSIPHON_TLS_CONN="vendor/github.com/Psiphon-Labs/psiphon-tls/conn.go"
+sed -i 's/state\.testingOnlyCurveID/state.CurveID/' "$PSIPHON_TLS_CONN"
 
 echo "Vendor patches applied."

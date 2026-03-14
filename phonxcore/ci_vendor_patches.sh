@@ -53,4 +53,20 @@ awk '
 { print }
 ' "$QPACK" > "${QPACK}.tmp" && mv "${QPACK}.tmp" "$QPACK"
 
+# ── psiphon-tls: add CurveID field to ConnectionState (Go 1.25 added it to crypto/tls) ──
+# Go 1.25 added CurveID to tls.ConnectionState (17 fields vs 16).
+# psiphon-tls uses unsafe.Pointer casts and panics if field count mismatches.
+PSIPHON_TLS_COMMON="vendor/github.com/Psiphon-Labs/psiphon-tls/common.go"
+awk '
+/CipherSuite uint16$/ {
+  print
+  print ""
+  print "\t// CurveID is the key exchange mechanism used for the connection."
+  print "\t// Added in Go 1.25."
+  print "\tCurveID CurveID"
+  next
+}
+{ print }
+' "$PSIPHON_TLS_COMMON" > "${PSIPHON_TLS_COMMON}.tmp" && mv "${PSIPHON_TLS_COMMON}.tmp" "$PSIPHON_TLS_COMMON"
+
 echo "Vendor patches applied."
